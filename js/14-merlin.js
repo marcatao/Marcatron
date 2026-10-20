@@ -226,9 +226,11 @@ function merlinHead(g, hx, hy, S) {
 }
 // balão de fala do Merlin (em coordenadas de mundo): ponta apontando para ele, texto em caixa alta
 function drawBubble(g, x, y, lines, opts = {}) {
-  const size = opts.size || 5.4, lh = size * 1.25, padX = 4, padY = 3;
+  // v11: opts.reveal = quantas letras já apareceram (a fala vai sendo escrita); opts.prompt = aviso de continuar no rodapé;
+  // opts.pages = [atual, total]. O tamanho do balão é sempre o da fala inteira, para não "pulsar" enquanto escreve.
+  const size = opts.size || 5.4, lh = size * 1.25, padX = 4, padY = 3, foot = opts.prompt != null ? lh * 0.95 : 0;
   g.font = `800 ${size}px ${FONT_UI}`;
-  const w = Math.max(...lines.map(l => g.measureText(l.replace(/[\[\]]/g, '')).width)) + padX * 2, h = lines.length * lh + padY * 2 - (lh - size);
+  const w = Math.max(...lines.map(l => g.measureText(l.replace(/[\[\]]/g, '')).width), opts.prompt ? 70 : 0) + padX * 2, h = lines.length * lh + padY * 2 - (lh - size) + foot;
   let bx = x - w / 2; const by = y - h - 5;
   if (opts.minX != null) bx = Math.max(opts.minX, bx); if (opts.maxX != null) bx = Math.min(opts.maxX - w, bx);
   const tx = clamp(x, bx + 4, bx + w - 4);
@@ -238,16 +240,28 @@ function drawBubble(g, x, y, lines, opts = {}) {
   g.beginPath(); g.moveTo(tx - 2.4, by + h - 0.4); g.lineTo(tx, by + h + 4.6); g.lineTo(tx + 2.4, by + h - 0.4); g.closePath(); fillStroke(g, '#fff8ea', 0.7);
   g.fillStyle = '#fff8ea'; g.fillRect(tx - 2.0, by + h - 1.4, 4.0, 1.2);
   g.textAlign = 'left'; g.textBaseline = 'top';
+  let left = opts.reveal != null ? Math.floor(opts.reveal) : Infinity;
   lines.forEach((l, i) => {
     // trechos entre colchetes ficam em laranja (o botão a apertar)
     let cx = bx + padX, yy = by + padY + i * lh;
     for (const part of l.split(/(\[[^\]]+\])/)) {
-      if (!part) continue;
+      if (!part || left <= 0) continue;
       const key = part[0] === '[';
-      const txt = key ? part.slice(1, -1) : part;
+      let txt = key ? part.slice(1, -1) : part;
+      if (txt.length > left) txt = txt.slice(0, left);
+      left -= txt.length;
       g.fillStyle = key ? '#e2550c' : '#21162e'; g.fillText(txt, cx, yy); cx += g.measureText(txt).width;
     }
   });
+  if (foot) {
+    const fy = by + h - padY - size * 0.82;
+    if (opts.pages && opts.pages[1] > 1) { g.font = `800 ${size * 0.7}px ${FONT_UI}`; g.fillStyle = '#9a8fae'; g.fillText(opts.pages[0] + '/' + opts.pages[1], bx + padX, fy + size * 0.12); }
+    if (opts.prompt) {
+      g.font = `800 ${size * 0.82}px ${FONT_UI}`; g.textAlign = 'right';
+      const parts = opts.prompt.split(/(\[[^\]]+\])/).filter(Boolean); let px = bx + w - padX;
+      for (let k = parts.length - 1; k >= 0; k--) { const key = parts[k][0] === '[', t = key ? parts[k].slice(1, -1) : parts[k]; g.fillStyle = key ? '#e2550c' : '#5a4a6e'; g.fillText(t, px, fy); px -= g.measureText(t).width; }
+    }
+  }
   g.restore();
   return { x: bx, y: by, w, h };
 }

@@ -1,50 +1,95 @@
 'use strict';
-// =================================================================== treino com o Merlin (v8)
-// Começo da fase: o Merlin, professor de patins, ensina em ordem — patinar, pular, powerslide e corrimão. Cada etapa só
-// libera a próxima quando o jogador consegue: a pilha de cases só passa pulando (segurando o botão), a cerca da IA só
-// desliga com faísca e a cancela do treino só abre depois de um grind no corrimão. Obrigatório na primeira vez no
-// aparelho; nas próximas, o Merlin só cumprimenta e libera tudo. O cronômetro só começa depois do treino.
-const TUT_KEY = 'marcatron.treino';
-const TUT = { s1: 9.5, s2: 13.2, crate0: 15, crate1: 16, s3: 18.8, fence: 22.5, s4: 26, rail0: 28, rail1: 34, gate: 36, sEnd: 37.8 };
-const TUT_STEPS = ['PATINAR', 'PULAR', 'POWERSLIDE', 'CORRIMÃO'];
+// =================================================================== treino com o Merlin (v8; v11: falas com pausa, história e mais lições)
+// Começo da fase: o Merlin conta a história (a IA dominou o mundo e a gente vai salvar os humanos e os animais) e ensina em
+// ordem: patinar, pular, powerslide, manobra no ar, resgatar um bicho com o powerslide, resgatar outro pulando em cima dele
+// e o corrimão. Cada fala trava o herói até o jogador apertar ESPAÇO (ou tocar na tela); cada etapa só libera a próxima
+// quando o jogador consegue. Obrigatório na primeira vez no aparelho; nas próximas, o Merlin só cumprimenta e libera tudo.
+// O cronômetro só começa depois do treino.
+const TUT_KEY = 'marcatron.treino.v11';   // v11: treino novo, todo mundo vê de novo
+const TUT = { s1: 9.5, s2: 13.2, crate0: 15, crate1: 16, s3: 18.8, fence: 22.5, s4: 25, kick0: 27, kick1: 29.5,
+  s5: 32.6, pen1: [34.5, 39.5], s6: 41, pen2: [42.5, 47.5], s7: 48.6, rail0: 50.5, rail1: 56, gate: 57.5, sEnd: 56.6 };   // a cancela só abre depois da última fala
+const TUT_STEPS = ['PATINAR', 'PULAR', 'SLIDE', 'MANOBRA', 'RESGATE 1', 'RESGATE 2', 'CORRIMÃO'];
+const TUT_N = TUT_STEPS.length;
 let tut = null;
-function makeTutorial(rail) {
+function makeTutorial(rail, dog, pigeon) {
   const first = store.get(TUT_KEY) !== '1';
   tut = {
-    first, active: first, step: first ? 1 : 5, t: 0, stepT: 0, rail,
+    first, active: first, step: first ? 1 : TUT_N + 1, t: 0, stepT: 0, rail, dog, pigeon, tricks0: 0,
     fence: { x: TUT.fence * TS, on: first, off: first ? 0 : 1 },
     gate: { x: TUT.gate * TS, pass: !first, open: first ? 0 : 1 },
-    say: null, praise: null, bump: null, endSaid: false, passed: false, doneT: null,
-    m: { x: TUT.s1 * TS, y: GROUND_Y, vx: 0, vy: 0, face: -1, state: 'ground', target: null, next: null, stride: 0, wheel: 0, t: 0, cheerT: 0, talk: 0, blinkT: 120, blink: 0, hairDX: 0, sparkT: 0 },
+    pending: null, bump: null, passed: false, doneT: null, endTalked: false,
+    m: { x: TUT.s1 * TS, y: GROUND_Y, vx: 0, vy: 0, face: -1, state: 'ground', target: null, next: null, stride: 0, wheel: 0, t: 0, cheerT: 0, talk: 0, talkT: 0, blinkT: 120, blink: 0, hairDX: 0, sparkT: 0 },
   };
-  tutSay();
+  tut.pending = tutPages(tut.step);
 }
 const KEYS = () => touchUI ? { right: 'O DIRECIONAL [→]', jump: '[PULAR]', act: '[SLIDE]' } : { right: '[→]', jump: '[ESPAÇO]', act: '[X]' };
-function tutLines(step) {
+// falas de cada etapa (cada item é uma página do balão; o jogador passa com ESPAÇO)
+function tutPages(step) {
   const k = KEYS(), n = NAME_UP();
   switch (step) {
-    case 1: return ['FALA, ' + n + '! EU SOU O MERLIN.', 'SEGURA ' + k.right + ' PRA REMAR E VEM ATÉ MIM!'];
-    case 2: return ['AGORA O PULO: PASSA POR CIMA DAS CAIXAS!', 'SEGURA ' + k.jump + ' PRA PULAR MAIS ALTO.'];
-    case 3: return ['ESSA CERCA DA IA SÓ DESLIGA COM FAÍSCA.', 'CHEGA PERTO E DÁ UM POWERSLIDE: ' + k.act + '!'];
-    case 4: return ['AGORA O CORRIMÃO: PULA EM CIMA DELE', 'E DESLIZA ATÉ O FIM!'];
-    default: return tut && tut.first ? ['AGORA É COM VOCÊ, ' + n + ':', 'LIBERTA A CIDADE!', 'DICA: NO AR, ' + k.act + ' FAZ MANOBRA E DÁ PONTOS!'] : ['E AÍ, ' + n + '! JÁ SABE TUDO.', 'BORA LIBERTAR A CIDADE!', 'NO AR, ' + k.act + ' = MANOBRA. CAPRICHA!'];
+    case 1: return [
+      ['FALA, ' + n + '! EU SOU O MERLIN,', 'PROFESSOR DE PATINS AQUI DO PAÇO.'],
+      ['PRESTA ATENÇÃO: A IA DOMINOU O MUNDO.', 'ELA PLUGOU UM CHIP EM CADA SER VIVO.'],
+      ['GENTE E BICHO VIRARAM ROBÔ: OBEDECEM', 'SEM PENSAR, SEM MÚSICA, SEM ALEGRIA.'],
+      ['A NOSSA MISSÃO É SALVAR OS HUMANOS', 'E OS ANIMAIS. MAS ANTES: TREINO!'],
+      ['SEGURA ' + k.right + ' PRA REMAR', 'E VEM ATÉ MIM!']];
+    case 2: return [['ISSO! TÁ PATINANDO!', 'AGORA O PULO: PASSA POR CIMA DAS CAIXAS.', 'SEGURA ' + k.jump + ' PRA PULAR MAIS ALTO.']];
+    case 3: return [['BOA! VOOU ALTO!', 'ESSA CERCA DA IA SÓ DESLIGA COM FAÍSCA.'], ['CHEGA PERTO DELA E DÁ UM', 'POWERSLIDE: ' + k.act + '!']];
+    case 4: return [['IRADO! VIU AS FAÍSCAS?', 'AGORA, AS MANOBRAS.'], ['PULA NA RAMPINHA E, LÁ NO AR,', 'APERTA ' + k.act + ' PRA FAZER UMA MANOBRA.'], ['CADA MANOBRA DÁ PONTOS. SÓ NÃO DEIXA', 'PRA ÚLTIMA HORA: TEM QUE POUSAR LIMPO!']];
+    case 5: return [['QUE MANOBRA, ' + n + '!'], ['TÁ VENDO ESSE CACHORRO? A IA CONTROLA ELE.', 'OLHA O OLHO VERMELHO DO CHIP...'], ['A FAÍSCA DO POWERSLIDE QUEIMA O CHIP.', 'CHEGA PERTO DELE E DÁ UM ' + k.act + '!']];
+    case 6: return [['ELE ACORDOU! OLHA COMO TÁ FELIZ!'], ['ESSE POMBO TAMBÉM TÁ PLUGADO NA IA.', 'DESSA VEZ, PULA EM CIMA DELE! ' + k.jump]];
+    case 7: return [['VIU SÓ? MAIS UM LIVRE!'], ['É ASSIM QUE A GENTE SALVA O MUNDO:', 'DESLIGANDO A IA DOS SERES VIVOS.'], ['POWERSLIDE OU PULO NA CABEÇA: CADA UM QUE', 'VOCÊ DESPERTA VOLTA A SENTIR A MÚSICA.'], ['ÚLTIMA LIÇÃO: O CORRIMÃO.', 'PULA EM CIMA DELE E DESLIZA ATÉ O FIM!']];
+    default: return tut && tut.first
+      ? [['MANDOU BEM, ' + n + '! TREINO COMPLETO.'], ['AGORA É COM VOCÊ: LIBERTA A CIDADE', 'E DESLIGA A IA DE TODO MUNDO!'], ['DICA: NO AR, ' + k.act + ' FAZ MANOBRA', 'E DÁ PONTOS. CAPRICHA!']]
+      : [['E AÍ, ' + n + '! JÁ SABE O ESQUEMA:', 'A IA DOMINOU O MUNDO E A GENTE DESLIGA ELA.'], ['POWERSLIDE OU PULO NA CABEÇA', 'DESPERTA QUEM TÁ PLUGADO. BORA!']];
   }
 }
-function tutSay(lines) { tut.say = { lines: lines || tutLines(tut.step), t: 0 }; tut.m.talkT = 150; }
-const tutStation = step => (step === 1 ? TUT.s1 : step === 2 ? TUT.s2 : step === 3 ? TUT.s3 : step === 4 ? TUT.s4 : tut.first ? TUT.sEnd : TUT.s1) * TS;
-function tutStepDone(praise) {
+const TUT_ST = [null, 's1', 's2', 's3', 's4', 's5', 's6', 's7'];
+const tutStation = step => (step <= TUT_N ? TUT[TUT_ST[step]] : tut.first ? TUT.sEnd : TUT.s1) * TS;
+function tutStepDone() {
   const m = tut.m;
-  tut.step++; tut.stepT = 0; tut.bump = null;
-  tut.praise = { text: praise, t: 0 };
+  tut.step++; tut.stepT = 0; tut.bump = null; tut.tricks0 = stats.tricks;
   m.cheerT = 54; m.next = tutStation(tut.step);
   sfx('combo', { vol: 0.7 }); noteBurst(m.x, m.y - MERLIN_H, 10, 1.6);
-  if (tut.step > 4) tutFinish(); else tutSay();
+  tut.pending = tutPages(tut.step);
 }
 function tutFinish() {
   tut.active = false; tut.gate.pass = true; store.set(TUT_KEY, '1');
   sfx('checkpoint', { vol: 0.9 }); sfx('gate', { vol: 0.5, rate: 1.4 });
   tut.doneT = 0;
-  tutSay();
+}
+// ---------- conversa (v11): o balão escreve letra por letra; o herói fica parado até o jogador passar a fala
+let talk = null;
+const TALK_CPS = 1.35;   // letras por quadro
+const talkLen = page => page.join('').replace(/[\[\]]/g, '').length;
+function startTalk(pages, who, onEnd) {
+  talk = { pages, i: 0, n: 0, t: 0, who, onEnd };
+  hero.jbuf = 0; hero.slideBuf = 0;
+  if (who) who.talkT = 30;
+}
+function updateTalk() {
+  if (!talk) return false;
+  talk.t++;
+  const len = talkLen(talk.pages[talk.i]);
+  if (talk.n < len) { talk.n = Math.min(len, talk.n + TALK_CPS); if (talk.t % 4 === 0) sfx('click', { vol: 0.12, rate: 1.5 + Math.random() * 0.5 }); if (talk.who) talk.who.talkT = 12; }
+  if ((input.jumpP || input.actP || input.startP) && talk.t > 6) {
+    if (talk.n < len) talk.n = len;
+    else if (talk.i < talk.pages.length - 1) { talk.i++; talk.n = 0; talk.t = 0; sfx('click', { vol: 0.5 }); }
+    else { const f = talk.onEnd; talk = null; sfx('click', { vol: 0.5, rate: 1.2 }); if (f) f(); }
+  }
+  input.jumpP = input.actP = input.startP = false;   // as teclas da conversa não viram pulo nem slide
+  input.left = input.right = input.jump = false;
+  return true;
+}
+// a fala da etapa começa quando o Merlin chega no ponto dele e o herói está por perto, de pé no chão
+function tutTryTalk() {
+  const m = tut.m, h = hero;
+  if (!tut.pending || talk || G.state !== 'play' || h.dead || !h.onGround || h.rail || h.ramp) return;
+  if (m.target != null || m.next != null || m.cheerT > 0 || m.state !== 'ground') return;
+  if (Math.abs(heroCX() - m.x) > 170) return;
+  const pages = tut.pending; tut.pending = null;
+  if (tut.step > TUT_N) tut.endTalked = true;
+  startTalk(pages, m, tut.active && tut.step > TUT_N ? tutFinish : null);
 }
 function tutFenceHit() {
   const f = tut.fence; if (!f.on) return;
@@ -52,10 +97,16 @@ function tutFenceHit() {
   for (let i = 0; i < 18; i++) part({ x: f.x + rnd(-4, 4), y: rnd(150, 190), vx: rnd(-2.4, 2.4), vy: rnd(-2.6, 0.4), col: SPARK_COLS[i % 4], life: 22, size: 1, g: 0.12, kind: 'spark' });
   pop(f.x, 150, 'CURTO-CIRCUITO!', '#ffd23f');
 }
-// paredes do treino: a cerca (até desligar) e a cancela (até o fim do treino) seguram o herói até o topo do mundo
+// paredes do treino: a cerca (até desligar) e a cancela (até o fim do treino) seguram o herói até o topo do mundo.
+// v11: enquanto a etapa do resgate não chega, o bicho do cercadinho fica atrás de uma parede invisível
 function tutWallList() {
   const L = []; if (!tut) return L;
   if (tut.fence.on) L.push({ x0: tut.fence.x - 5, x1: tut.fence.x + 5, k: 3 });
+  const locked = n => tut.active && (tut.step < n || (tut.step === n && tut.pending));   // só passa depois da fala da etapa
+  if (locked(4)) L.push({ x0: TUT.kick0 * TS - 3, x1: TUT.kick0 * TS + 1, k: 5 });
+  if (locked(5)) L.push({ x0: TUT.pen1[0] * TS - 3, x1: TUT.pen1[0] * TS + 1, k: 5 });
+  if (locked(6)) L.push({ x0: TUT.pen2[0] * TS - 3, x1: TUT.pen2[0] * TS + 1, k: 6 });
+  if (locked(7)) L.push({ x0: TUT.rail0 * TS - 14, x1: TUT.rail0 * TS - 10, k: 4 });
   if (!tut.gate.pass) L.push({ x0: tut.gate.x - 2, x1: tut.gate.x + 3, k: 4 });
   return L;
 }
@@ -69,43 +120,65 @@ function tutBlock(b) {   // robôs também não atravessam
   for (const w of tutWallList()) if (b.x + b.w > w.x0 && b.x < w.x1) { b.x = (b.x + b.w / 2 < (w.x0 + w.x1) / 2) ? w.x0 - b.w - 0.01 : w.x1 + 0.01; return true; }
   return false;
 }
+const TUT_BUMPS = {
+  3: k => ['CALMA! ESSA CERCA SÓ CAI COM FAÍSCA:', 'DÁ UM POWERSLIDE PERTO DELA! ' + k.act],
+  4: k => tut.step < 7 || tut.pending ? ['AINDA NÃO! TERMINA A LIÇÃO DE AGORA', 'E VEM FALAR COMIGO.'] : ['NO CORRIMÃO! VOLTA, PEGA EMBALO', 'E PULA EM CIMA DELE. ' + k.jump],
+  5: k => tut.step < 5 || tut.pending ? ['CALMA, UMA LIÇÃO DE CADA VEZ!', 'VEM FALAR COMIGO PRIMEIRO.'] : ['PRIMEIRO A MANOBRA: PULA NA RAMPINHA', 'E APERTA ' + k.act + ' NO AR!'],
+  6: k => tut.step < 6 && !tut.pending ? ['ANTES, SALVA O CACHORRO', 'COM O POWERSLIDE! ' + k.act] : ['CALMA, UMA LIÇÃO DE CADA VEZ!', 'VEM FALAR COMIGO PRIMEIRO.'],
+};
 function tutBump(k) {
-  if (tut.bump && tut.bump.t < 90) return;
-  const kk = KEYS();
-  tut.bump = { t: 0, lines: k === 3 ? ['CALMA! ESSA CERCA SÓ CAI COM FAÍSCA:', 'DÁ UM POWERSLIDE PERTO DELA! ' + kk.act] : ['NO CORRIMÃO! VOLTA, PEGA EMBALO', 'E PULA EM CIMA DELE. ' + kk.jump] };
+  if ((tut.bump && tut.bump.t < 90) || talk) return;
+  tut.bump = { t: 0, lines: TUT_BUMPS[k](KEYS()) };
   tut.m.talkT = 90; sfx('bump', { vol: 0.5, rate: 1.3 });
+}
+function tutHint(lines) {   // dica que não trava o jogo (ex.: resgate do jeito errado)
+  if (!tut || talk || (tut.bump && tut.bump.t < 60)) return;
+  tut.bump = { t: 0, lines }; tut.m.talkT = 90; sfx('bump', { vol: 0.45, rate: 1.4 });
+}
+// v11: os bichos do treino exigem o jeito certo: o cachorro só com faísca, o pombo só com pulo na cabeça
+function tutRescueOk(e, src) {
+  if (!e.tutReq) return true;
+  const k = KEYS();
+  if (e.tutReq === 'slide' && !SPARKY[src]) { tutHint(['ESSE AÍ É COM O POWERSLIDE!', 'CHEGA PERTO E APERTA ' + k.act]); return false; }
+  if (e.tutReq === 'stomp' && src !== 'stomp' && src !== 'slam') { tutHint(['ESSE AÍ É PULANDO EM CIMA!', 'APERTA ' + k.jump + ' E CAI NELE.']); return false; }
+  return true;
 }
 function tutSlide() {   // o herói deu um powerslide: encostado na cerca também vale; longe demais, o Merlin avisa
   if (!tut || !tut.fence.on || tut.step !== 3) return;
   const d = tut.fence.x - heroCX();
-  if (d > 60 && d < 200) { tut.bump = { t: 0, lines: ['MAIS PERTO DA CERCA!', 'A FAÍSCA SÓ VAI UNS 2 BLOCOS.'] }; tut.m.talkT = 90; }
+  if (d > 60 && d < 200) tutHint(['MAIS PERTO DA CERCA!', 'A FAÍSCA SÓ VAI UNS 2 BLOCOS.']);
 }
 function tutGround(x) { return x >= TUT.crate0 * TS - 3 && x <= (TUT.crate1 + 1) * TS + 3 ? 9 * TS : GROUND_Y; }
 function updateTutorial() {
   if (!tut) return;
   const m = tut.m, h = hero, hx = heroCX(), playing = G.state === 'play';
   tut.t++; tut.stepT++; m.t += 1 / 60;
-  if (tut.say) tut.say.t++; if (tut.praise) { tut.praise.t++; if (tut.praise.t > 80) tut.praise = null; } if (tut.bump) { tut.bump.t++; if (tut.bump.t > 150) tut.bump = null; }
-  // ----- etapas
-  if (playing && tut.active && !h.dead) {
-    if (tut.step === 1 && hx >= m.x - 26) tutStepDone('ISSO! TÁ PATINANDO!');
-    else if (tut.step === 2 && h.x > (TUT.crate1 + 1) * TS + 2 && h.onGround) tutStepDone('BOA! VOOU ALTO!');
-    else if (tut.step === 3 && !tut.fence.on) tutStepDone('IRADO! VIU AS FAÍSCAS?');
-    else if (tut.step === 4 && h.rail === tut.rail && h.grindT >= 8) tutStepDone('MANDOU BEM, ' + NAME_UP() + '!');
+  if (tut.bump) { tut.bump.t++; if (tut.bump.t > 150) tut.bump = null; }
+  // ----- etapas (só contam fora das falas)
+  if (playing && tut.active && !h.dead && !talk && !tut.pending) {
+    const s = tut.step;
+    if (s === 1 && hx >= m.x - 26) tutStepDone();
+    else if (s === 2 && h.x > (TUT.crate1 + 1) * TS + 2 && h.onGround) tutStepDone();
+    else if (s === 3 && !tut.fence.on) tutStepDone();
+    else if (s === 4 && stats.tricks > tut.tricks0) tutStepDone();
+    else if (s === 5 && tut.dog.freed) tutStepDone();
+    else if (s === 6 && tut.pigeon.freed) tutStepDone();
+    else if (s === 7 && h.rail === tut.rail && h.grindT >= 8) tutStepDone();
   }
   if (!tut.fence.on && tut.fence.off < 1) tut.fence.off = Math.min(1, tut.fence.off + 0.04);
   if (tut.gate.pass && tut.gate.open < 1) tut.gate.open = Math.min(1, tut.gate.open + 0.035);
-  // ----- o Merlin: vai até o ponto da etapa (pulando as caixas e deslizando no corrimão), comemora e explica
+  // ----- o Merlin: vai até o ponto da etapa (pulando as caixas, a rampinha e deslizando no corrimão), comemora e explica
   if (m.cheerT > 0 && --m.cheerT === 0 && m.next != null) { m.target = m.next; m.next = null; }
-  if (m.target == null && m.cheerT === 0 && m.state === 'ground' && Math.abs(m.x - tutStation(tut.step)) > 3) m.target = tutStation(tut.step);
+  if (m.target == null && m.next == null && m.cheerT === 0 && m.state === 'ground' && Math.abs(m.x - tutStation(tut.step)) > 3) m.target = tutStation(tut.step);
   if (m.target != null && m.cheerT === 0) {
     const d = m.target - m.x;
     if (Math.abs(d) < 2.5 && m.state === 'ground') { m.x = m.target; m.target = null; m.vx = 0; }
     else { m.vx = approach(m.vx, Math.sign(d) * 2.3, 0.14); if (m.state !== 'grind') m.face = Math.sign(d) || m.face; }
   } else if (m.state === 'ground') m.vx = approach(m.vx, 0, 0.18);
   if (m.state === 'ground' && m.vx > 0.6 && m.target != null) {
-    const c0 = TUT.crate0 * TS, r = tut.rail;
+    const c0 = TUT.crate0 * TS, k0 = TUT.kick0 * TS, r = tut.rail;
     if (m.x < c0 && m.x > c0 - 24 && m.target > c0) { m.state = 'air'; m.vy = -6.1; sfx('jump', { vol: 0.35, rate: 0.85, pan: panOf(m.x) }); }
+    else if (m.x < k0 && m.x > k0 - 10 && m.target > k0) { m.state = 'air'; m.vy = -4.8; sfx('jump', { vol: 0.3, rate: 0.85, pan: panOf(m.x) }); }
     else if (r && m.x < r.x0 && m.x > r.x0 - 18 && m.target > r.x1) { m.state = 'air'; m.vy = -3.7; sfx('jump', { vol: 0.3, rate: 0.85, pan: panOf(m.x) }); }
   }
   m.x += m.vx;
@@ -126,11 +199,11 @@ function updateTutorial() {
   m.talk = m.talkT > 0 ? 0.5 + 0.5 * Math.sin(m.t * 15) : 0;
   if (--m.blinkT <= 0) { m.blink = 7; m.blinkT = 150 + Math.random() * 160; } if (m.blink > 0) m.blink--;
   m.hairDX += (clamp(-m.vx * 0.8, -2.2, 2.2) * m.face - m.hairDX) * 0.12;
+  tutTryTalk();
   // depois do treino: quando o herói passa por ele, um "vai!"
   if (tut.doneT != null) tut.doneT++;
-  const atEnd = m.target == null && m.state === 'ground' && Math.abs(m.x - tutStation(5)) < 4;
-  if (!tut.active && !tut.passed && tut.first && !atEnd && hx > tutStation(5) + 20) tut.passed = true;   // passou antes de ele chegar: sem bronca nem elogio
-  if (!tut.active && !tut.passed && atEnd && hx > m.x + 20 && playing) { tut.passed = true; tut.praise = { text: 'VAI, ' + NAME_UP() + '! ARREBENTA!', t: 0 }; m.cheerT = Math.max(m.cheerT, 40); }
+  const atEnd = m.target == null && m.state === 'ground' && Math.abs(m.x - tutStation(TUT_N + 1)) < 4;
+  if (!tut.active && !tut.passed && atEnd && hx > m.x + 20 && playing && !talk) { tut.passed = true; tut.bump = { t: 0, lines: ['VAI, ' + NAME_UP() + '! ARREBENTA!'] }; m.cheerT = Math.max(m.cheerT, 40); }
 }
 function merlinMode(m) {
   if (m.cheerT > 0) return 'cheer';
@@ -190,20 +263,17 @@ function drawTutorialFront(g, t, vx0, vx1) {
   }
 }
 function drawTutorialBubble(g) {
-  if (!tut) return;
-  const m = tut.m;
-  // balão: bronca > elogio > fala da etapa (só quando o herói está por perto)
-  const hx = heroCX(), near = Math.abs(hx - m.x) < 230 && G.state === 'play';
-  let lines = null;
-  if (tut.bump && tut.bump.t < 150) lines = tut.bump.lines;
-  else if (tut.praise) lines = [tut.praise.text];
-  else if (tut.say && m.target == null && m.state === 'ground' && (tut.active || !tut.passed)) lines = tut.say.lines;
-  if (lines && near) {
-    const cx = cam.x, cw = viewW();
-    drawBubble(g, m.x + m.face * 3, m.y - MERLIN_H - 2, lines, { minX: cx + 3, maxX: cx + cw - 3, size: 5.2 });
+  if (talk && talk.who) {   // conversa: letra por letra e o aviso de continuar quando a fala termina
+    const w = talk.who, page = talk.pages[talk.i], done = talk.n >= talkLen(page);
+    const prompt = done && ((G.frame >> 4) % 4 !== 3) ? (touchUI ? '[TOQUE] PRA CONTINUAR ▶' : '[ESPAÇO] PRA CONTINUAR ▶') : '';
+    drawBubble(g, w.x + w.face * 3, w.y - MERLIN_H - 2, page, { minX: cam.x + 3, maxX: cam.x + viewW() - 3, size: 5.2, reveal: talk.n, prompt, pages: [talk.i + 1, talk.pages.length] });
+    return;
   }
+  if (!tut) return;
+  const m = tut.m, hx = heroCX(), near = Math.abs(hx - m.x) < 230 && G.state === 'play';
+  if (tut.bump && tut.bump.t < 150 && near) drawBubble(g, m.x + m.face * 3, m.y - MERLIN_H - 2, tut.bump.lines, { minX: cam.x + 3, maxX: cam.x + viewW() - 3, size: 5.2 });
 }
-// ----- HUD: as 4 etapas do treino
+// ----- HUD: as etapas do treino
 function drawTutorialHUD(u) {
   if (tut && tut.doneT != null && tut.doneT < 150 && G.state === 'play') {   // faixa de treino completo
     const a = Math.min(1, tut.doneT / 10, (150 - tut.doneT) / 25), y = 46 * H / cssH + 34 * u;

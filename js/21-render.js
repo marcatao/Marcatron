@@ -108,6 +108,7 @@ function drawHeroNow(beat) {
   GLOW_DEFER = [];
   drawHeroRig(g, P, S);
   const glows = GLOW_DEFER; GLOW_DEFER = null;
+  if ((h.rail || h.loop) && !h.dead) glow(ctx, fx0 - h.face * 2, fy0, 10 + Math.sin(G.t * 40) * 2, '#ffb347', 0.6);   // v11: brasa no ponto de contato do grind
   const r = Math.max(1.4, 0.34 * k);
   og.setTransform(1, 0, 0, 1, 0, 0); og.globalCompositeOperation = 'source-over'; og.clearRect(0, 0, HERO_L.o.width, HERO_L.o.height);
   for (const [dx, dy] of RIM_DIRS) og.drawImage(HERO_L.c, 0, 0, cw, chh, dx * r, dy * r, cw, chh);
@@ -175,6 +176,7 @@ function drawWorld() {
   if (antenna.x > vx0 - 120 && antenna.x < vx1 + 140) drawAntenna(ctx, antenna, t, beat);
   for (const u of ufos) if (u.kind !== 'flyby') drawUFO(ctx, u, t, 1);
   for (const it of items) if (!it.taken && it.rise > 0) drawFood(ctx, it, t);
+  drawLadeiraBack(ctx, vx0, vx1, t);   // v11: ponto de ônibus com os patinadores
   mark('decor'); drawGround(ctx, vx0, vx1); drawSkatepark(ctx, vx0, vx1, t); mark('ground');
   drawTiles(false); drawRails(ctx, vx0, vx1, t); mark('tiles');
   for (const e of enemies) if (!e.gone && !e.freed && e.x > vx0 - 30 && e.x < vx1 + 30) drawEnemy(ctx, e, beat);
@@ -201,6 +203,7 @@ function drawWorld() {
   if (alien.x > vx0 - 20 && alien.x < vx1 + 20) drawAlien(ctx, alien, t);
   mark('fg-coins'); flushEmissive(ctx); mark('fg-emis2');
   drawTutorialFront(ctx, t, vx0, vx1);   // v8: o Merlin (atrás do herói)
+  drawLadeiraFront(ctx, vx0, vx1, t);   // v11: Merlin no topo da ladeira e o trânsito
   if (G.state !== 'title') drawHeroNow(beat); mark('fg-hero');
   for (const w of waves) {   // v7: leque de faíscas saindo do patins (powerslide)
     const a = 1 - w.t / 17;
@@ -343,7 +346,7 @@ function drawResults() {
 const PROF = { on: false, acc: {}, last: 0 };
 function prof(name, fn) { if (!PROF.on) return fn(); const t0 = performance.now(); fn(); PROF.acc[name] = (PROF.acc[name] || 0) + performance.now() - t0; }
 function render() {
-  drawWorld();
+  tiltBegin(); drawWorld(); tiltEnd();   // v11: câmera inclinada na ladeira
   if (G.state === 'title') drawTitle();
   else {
     drawHUD(); mark('hud');

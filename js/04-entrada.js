@@ -35,7 +35,7 @@ bJump.addEventListener('pointerdown', e => { e.preventDefault(); audioInit(); tr
 bAct.addEventListener('pointerdown', e => { e.preventDefault(); audioInit(); input.actP = true; bAct.classList.add('on'); });
 ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => bAct.addEventListener(ev, () => bAct.classList.remove('on')));
 ['touchend', 'click'].forEach(ev => document.addEventListener(ev, () => audioInit(), { passive: true }));
-document.getElementById('wrap').addEventListener('pointerdown', () => { audioInit(); if ((G.state === 'title' && !nameAsking()) || G.state === 'results') input.startP = true; });
+document.getElementById('wrap').addEventListener('pointerdown', () => { audioInit(); if ((G.state === 'title' && !nameAsking()) || G.state === 'results' || (G.state === 'play' && talk)) input.startP = true; });
 // ---------- caixa do nome (v8)
 const nameBox = document.getElementById('nameBox'), nameIn = document.getElementById('nameIn');
 const nameAsking = () => !nameBox.hidden;

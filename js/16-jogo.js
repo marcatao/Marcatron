@@ -20,7 +20,7 @@ function resetHero(x) {
   hero = { x, y: GROUND_Y - 14, w: 12, h: 14, vx: 0, vy: 0, form: 0, tfFrom: 0, tfT: 1, face: 1, onGround: true, coyote: 0, jbuf: 0, jumping: false,
     inv: 0, strum: 0, cd: 0, phase: 0, dead: false, deadT: 0, combo: 0,
     sq: 1, sqv: 0, duck: 1, hairX: 0, hairY: 0, hvx: 0, hvy: 0, badge: 0, badgeV: 0, scarf: 0, blink: 0, blinkT: 120, look: 0, mouth: 0, idleT: 0,
-    ramp: null, rail: null, rs: 0, railCd: 0, slideT: 0, slideCd: 0, slideBuf: 0, stride: 0, pushing: false, wheel: 0, ang: 0, angT: 0, airT: 0, trick: false, grindT: 0,
+    ramp: null, rail: null, loop: null, lt: 0, slope: 0, rs: 0, railCd: 0, slideT: 0, slideCd: 0, slideBuf: 0, stride: 0, pushing: false, wheel: 0, ang: 0, angT: 0, airT: 0, trick: false, grindT: 0,
     takeoff: GROUND_Y, bigAir: false, grindRun: 0, man: null, manDone: [], manPts: 0, lastTrick: -1, stunT: 0, airPrev: false, happyT: 0, cheerT: 0 };
 }
 function setForm(f, hurtFlag) {
@@ -59,7 +59,7 @@ function freeEnemy(e, combo = 1) {
 const THANK_T = 190;   // quadros que o balão "obrigado pelo despertar" fica na tela
 const VOICE = { dog: ['bark', 0.55, 1.25], cat: ['meow', 0.75, 1.12], pigeon: ['coo', 0.6, 1.3] };
 function hurt() {
-  if (hero.inv > 0 || hero.dead || G.state !== 'play' || G.cutscene) return;
+  if (hero.inv > 0 || hero.dead || G.state !== 'play' || G.cutscene || talk) return;
   if (window.__god) { G.godHits = (G.godHits || 0) + 1; return; }   // gancho de teste
   AU.hurtT = 1;
   if (hero.form > 0) { setForm(0, true); hero.inv = 110; sfx('hurt'); G.shake = 8; pop(hero.x + hero.w / 2, hero.y - 8, 'AI!', '#ff3b5c'); }
@@ -70,7 +70,7 @@ function kill() {
   hero.dead = true; hero.deadT = 0; hero.vx = 0; hero.vy = 0; hero.form = 0; hero.tfT = 1; stats.deaths++;
   sfx('morte', { vol: 0.9 }); AU.duck = 1; G.deathMsg = 1; G.shake = 10;
 }
-function respawn() { resetHero(cp.x); hero.inv = 60; G.deathMsg = 0; AU.duck = 0; calmEnemies(); resetBoss(); bossBoxes.length = 0; updateCamera(true); }
+function respawn() { resetLadeira(); resetHero(cp.x); hero.inv = 60; G.deathMsg = 0; AU.duck = 0; calmEnemies(); resetBoss(); bossBoxes.length = 0; updateCamera(true); }
 function bumpTile(c, r) {
   const t = tileAt(c, r), key = r * COLS + c;
   if (t === T.NP || t === T.NPEP || t === T.NBAT) {
@@ -233,11 +233,13 @@ function updateHero() {
   if (h.tfT < 1) h.tfT = Math.min(1, h.tfT + 1 / 24);
   { const vis = heroVisH(FORMP[h.form]); h.duck = lerp(h.duck, clamp((ceilRoom(h, vis + 2) - 0.4) / vis, 0.62, 1), 0.3); }   // agacha sob teto baixo
   h.mouth = lerp(h.mouth, (!h.onGround && h.vy < -1) || h.strum > 0 || h.slideT > 8 ? 1 : 0, 0.25);
-  if (h.dead) { h.ramp = h.rail = null; skateAudio(h, false); h.deadT++; if (h.deadT === 24) h.vy = -5; if (h.deadT > 24) { h.vy += 0.3; h.y += h.vy; } if (h.deadT > 110) respawn(); return; }
+  if (h.dead) { h.ramp = h.rail = h.loop = null; skateAudio(h, false); h.deadT++; if (h.deadT === 24) h.vy = -5; if (h.deadT > 24) { h.vy += 0.3; h.y += h.vy; } if (h.deadT > 110) respawn(); return; }
   const F = FORMS[h.form], playing = G.state === 'play', auto = playing && G.cutscene;   // cutscene: o portão abriu, ele vai sozinho até o palco
+  if (talk && h.onGround && !h.rail && !h.ramp) h.vx = approach(h.vx, 0, 0.3);   // v11: parado ouvindo a fala
   if (h.stunT > 0) h.stunT--;
   const dirIn = h.stunT > 0 ? 0 : playing && !auto ? (input.right ? 1 : 0) - (input.left ? 1 : 0) : (h.x + h.w / 2 < (GOAL_C + 3) * TS - 6 ? 1 : 0);
-  const lim = playing && !auto ? F.max : auto ? 1.7 : 1.1;
+  h.slope = playing && !auto && !talk ? slopeK(h.x + h.w / 2) : 0;   // v11: na ladeira o embalo vem sozinho e o teto sobe
+  const lim = (playing && !auto ? F.max : auto ? 1.7 : 1.1) * (1 + 0.42 * h.slope);
   if (G.skidCd > 0) G.skidCd--;
   if (h.cd > 0) h.cd--; if (h.strum > 0) h.strum--; if (h.inv > 0) h.inv--;
   if (h.slideCd > 0) h.slideCd--; if (h.railCd > 0) h.railCd--;
@@ -250,12 +252,19 @@ function updateHero() {
   }
   if (h.slideBuf > 0) { h.slideBuf--; if (h.onGround && !h.rail && h.slideCd === 0) { startSlide(); h.slideBuf = 0; } }
   if (h.rail) railStep(h, F);
+  else if (h.loop) loopStep(h);
   else if (h.ramp) rampStep(h, F, dirIn);
   else freeStep(h, F, dirIn, lim, playing, auto);
   if (h.jbuf > 0) h.jbuf--;
   const grounded = h.onGround || !!h.rail;
   if (h.man && !grounded) { h.man.t++; trickFx(h); if (h.man.t >= h.man.dur) finishTrick(h); }
   if (h.airPrev && grounded) trickLand(h);
+  // v11: grind longo vale pontos (contados quando ele sai do corrimão)
+  if (h.rail || h.loop) h.grindRun++;
+  else if (h.grindRun > 0) {
+    if (h.grindRun >= 24 && playing) { const pts = Math.round(h.grindRun / 6) * 10; stats.score += pts; pop(h.x + h.w / 2, h.y - 14, '+' + pts + ' GRIND!', '#ffb347', pts >= 150); sfx('note_open', { vol: 0.5, rate: 1.2, pan: panOf(h.x) }); }
+    h.grindRun = 0;
+  }
   h.airPrev = !grounded;
   if (h.slideT > 0) {   // faíscas saindo do patins da frente
     h.slideT--;
@@ -266,8 +275,10 @@ function updateHero() {
     if (tut && tut.fence.on && h.slideT > SLIDE_T - 18 && Math.abs(heroCX() - tut.fence.x) < h.w / 2 + 9) tutFenceHit();
   }
   // pose: inclina com a rampa/corrimão; rodinhas giram com o chão
-  h.angT = h.ramp ? Math.atan(rampSlope(h.ramp, h.x + h.w / 2)) : h.rail ? Math.atan(h.rail.m) * 0.5 : 0;
-  h.ang += (h.angT - h.ang) * (h.ramp || h.rail ? 0.45 : 0.12);
+  if (!h.loop) {   // no loop o ângulo vem direto do círculo
+    h.angT = h.ramp ? Math.atan(rampSlope(h.ramp, h.x + h.w / 2)) : h.rail ? Math.atan(h.rail.m) * 0.5 : 0;
+    h.ang += (h.angT - h.ang) * (h.ramp || h.rail ? 0.45 : 0.12);
+  }
   h.wheel += (h.onGround && !h.rail ? (h.ramp ? h.rs : h.vx) : 0) / 0.62;
   if (h.onGround) { h.coyote = 6; h.airT = 0; } else { if (h.coyote > 0) h.coyote--; h.airT++; }
   h.phase += h.onGround ? Math.abs(h.vx) * 0.105 : 0;
@@ -320,6 +331,7 @@ function freeStep(h, F, dirIn, lim, playing, auto) {
     }
     h.face = dirIn;
   } else h.vx = approach(h.vx, 0, h.onGround ? (playing && !auto ? F.coast : 0.08) : 0.006);
+  if (h.slope > 0 && h.onGround && h.slideT === 0 && dirIn >= 0) { h.vx = Math.min(lim, h.vx + 0.055 * h.slope); if (dirIn === 0) h.face = 1; }   // descida: a gravidade empurra
   if (Math.abs(h.vx) > lim && h.onGround && h.slideT === 0) h.vx = Math.sign(h.vx) * Math.max(lim, Math.abs(h.vx) - 0.035);   // embalo extra das rampas some aos poucos
   if (h.pushing) { const p0 = h.stride; h.stride += 0.075 + Math.abs(h.vx) * 0.02; if (Math.floor(p0 / Math.PI) !== Math.floor(h.stride / Math.PI)) sfx('push', { vol: 0.3, vary: 0.08, pan: panOf(h.x) }); }
   if (h.jbuf > 0 && (h.onGround || h.coyote > 0)) doJump(h, F, h.vx, 0);
@@ -449,6 +461,7 @@ function railStep(h, F) {
   let fx = h.x + h.w / 2 + h.rs * r.tx, rr = r;
   if (fx > r.x1 || fx < r.x0) {
     const nx = railNext(r, fx > r.x1 ? 1 : -1);
+    if (nx && nx.isLoop) { enterLoop(h, nx, fx - r.x1); return; }   // v11: o corrimão vira um loop
     if (nx) { rr = h.rail = nx; fx = clamp(fx, nx.x0, nx.x1); }      // emenda no corrimão seguinte
     else {   // sai na ponta com um pulinho
       h.rail = null; h.railCd = 10; h.vx = h.rs * r.tx; h.vy = Math.min(h.rs * r.ty, 0) - 1.3; h.onGround = false; h.x = fx - h.w / 2; h.trick = false;
@@ -575,6 +588,7 @@ function updateDanger() {
   d += projs.length * 0.5 + shocks.length * 0.6 + (G.alarmT > 0 ? 1.5 : 0) + bossBoxes.length * 0.6;
   if (bossFighting() && hx > ARENA.c0 * TS - 40) d += boss.state === 'tired' ? 1.4 : 3.0;   // luta com o chefe: banda pesada
   if (antenna.alive) d += 2.2 * clamp(1 - Math.abs(hx - antenna.x) / 300, 0, 1);
+  d += 1.7 * slopeK(hx);   // v11: na ladeira a banda acelera
   AU.hurtT = Math.max(0, (AU.hurtT || 0) - 1 / 180); d += (AU.hurtT || 0) * 1.5;
   if (G.state !== 'play' || hero.dead) d = 0;
   const tg = clamp(d / 3.2, 0, 1);
@@ -599,7 +613,7 @@ function updateFx() {
   if (G.shake > 0) G.shake--; if (G.flash > 0) G.flash = Math.max(0, G.flash - 0.04);
 }
 function startGame() {
-  audioInit(); buildLevel(); computeRuns(); resetHero(cp.x); G.timer = { t: 0, on: false }; colorX = colorTarget = 38 * TS;   // v8: a pista do Merlin é colorida
+  audioInit(); buildLevel(); computeRuns(); resetHero(cp.x); G.timer = { t: 0, on: false }; colorX = colorTarget = colMap(38) * TS;   // v8: a pista do Merlin é colorida
   for (const b of BILLBOARDS) { b.on = false; b.t = 0; }
   G.state = 'play'; G.lead = 0; G.result = null; G.deathMsg = 0; G.shake = 0; G.hintT = 0; G.ufoTimer = 1500; G.coinCombo = 0; G.alarmT = 0; G.alarmTip = false; G.cutscene = false; G.timeFrozen = false; G.pipeT = 0; G.pipeTip = false; G.slomo = 0;
   AU.danger = 0; AU.duck = 0; AU.crowd = 0.1; cam.zoom = 1; updateCamera(true); musicStart(true); loadBest();
@@ -614,10 +628,11 @@ function update() {
     if (G.resT === 30) { AU.danger = 0.9; AU.crowd = 1; musicStart(false); } else if (G.resT > 30) AU.danger = lerp(AU.danger, G.resT < 1000 ? 0.9 : 0.5, 0.01);
     musicUpdate(); return;
   }
-  if (G.state === 'play' && !G.timer.on && !G.timeFrozen && !hero.dead && !(tut && tut.active) && (input.left || input.right || input.jumpP)) G.timer.on = true;   // v8: só depois do treino
-  if (G.timer.on) G.timer.t += 1 / 60;
+  if (G.state === 'play' && !G.timer.on && !G.timeFrozen && !hero.dead && !talk && !(tut && tut.active) && (input.left || input.right || input.jumpP)) G.timer.on = true;   // v8: só depois do treino
+  if (G.timer.on && !talk) G.timer.t += 1 / 60;   // v11: o tempo para enquanto alguém fala
   G.hintT++;
-  updateHero(); updateSlomo(); updateTutorial(); updateEnemies(); updateBoss(); updateShocks(); updateItems(); updateWaves(); updateProjs(); updateUFOs(); updateFx(); updateCamera(false); updateDanger(); musicUpdate();
+  updateTalk();
+  updateHero(); updateSlomo(); updateTutorial(); updateEnemies(); updateLadeira(); updateBoss(); updateShocks(); updateItems(); updateWaves(); updateProjs(); updateUFOs(); updateFx(); updateCamera(false); updateDanger(); musicUpdate();
   if (G.state === 'win') {
     G.winT++;
     if (G.winT % 24 === 0) { hero.strum = 16; noteBurst(hero.x + hero.w / 2, hero.y, 6); }

@@ -20,6 +20,7 @@ const SPARKY = { wave: 1, slide: 1, grind: 1 };
 function hitEnemy(e, src, combo = 1) {
   if (e.freed || e.gone) return false;
   if (e.hitCd > 0 && (src === 'stomp' || SPARKY[src])) return false;
+  if (!tutRescueOk(e, src)) { e.hitCd = 20; return false; }   // v11: bichos do treino só com o jeito ensinado
   if (e.type === 'flower' && SPARKY[src] && e.closedT > 0.5) {   // botão fechado: a faísca bate e volta
     e.hitCd = 12; sfx('bump', { vol: 0.5, rate: 1.7, pan: panOf(e.x) });
     pop(e.x + e.w / 2, e.y - 6, 'FECHADA!', '#ffd23f');
@@ -58,6 +59,7 @@ function contactHero(e) {
     return;
   }
   if ((e.type === 'pigeon' && e.state === 'dizzy') || (e.type === 'dog' && e.state === 'stun') || e.hitCd > 0) return;   // tonto/atordoado não machuca
+  if (e.tame) { h.vx = (h.x + h.w / 2 < e.x + e.w / 2 ? -1 : 1) * 1.2; return; }   // v11: os do treino só empurram
   hurt();
 }
 
@@ -295,6 +297,7 @@ function updateEnemies() {
     const k = { beat, bi, newBeat, pulse, I: antenna.alive ? clamp(1 - Math.abs(e.x - antenna.x) / 300, 0, 1) : 0 };
     if (e.type === 'pigeon') updPigeon(e, k); else if (e.type === 'dog') updDog(e, k); else if (e.type === 'flower') updFlower(e, k); else updCat(e, k);
     if (e.x < 0) e.x = 0; if (e.x + e.w > LW) e.x = LW - e.w;
+    if (e.pen) { if (e.x < e.pen[0]) { e.x = e.pen[0]; e.dir = 1; } else if (e.x + e.w > e.pen[1]) { e.x = e.pen[1] - e.w; e.dir = -1; } }   // v11: cercadinho do treino
     if (e.y > VH + 30 && e.type !== 'pigeon') { e.gone = true; continue; }
     contactHero(e);
   }

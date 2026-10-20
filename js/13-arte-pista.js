@@ -75,6 +75,7 @@ function drawSkatepark(g, vx0, vx1, t) {
   for (const r of ramps) if (r.x1 > vx0 - 10 && r.x0 < vx1 + 10) drawRamp(g, r, t);
 }
 function drawRails(g, vx0, vx1, t) {
+  for (const L of loops) if (L.cx + L.R > vx0 - 10 && L.cx - L.R < vx1 + 10) drawLoop(g, L, t);   // v11: corrimão com loop
   for (const r of rails) if (r.x1 > vx0 - 10 && r.x0 < vx1 + 10) drawRail(g, r, t);
 }
 // --- deck de compensado (blocos da pista em U): o de cima tem a plataforma

@@ -162,7 +162,9 @@ function drawHeroRig(g, P, S) {
     }
     case 'air': leanU = 0.06; if (S.vy < 0) { crouch = 0.22; front = [2.2, -2.1, -0.24]; back = [-1.8, -1.4, -0.1]; } else { crouch = 0.1; front = [2.1, -0.7, 0.14]; back = [-2.0, -0.4, 0.12]; } break;
     case 'grab': crouch = 0.26; leanU = 0.12; front = [2.4, -4.4, -0.55]; back = [-3.8, -0.9, 0.2]; break;
-    case 'grind': crouch = 0.42; leanU = -0.05; front = [3.5, 0, 0]; back = [-3.3, 0, 0]; break;
+    // v11: soul grind de verdade — o patins da frente apoiado no corrimão pela placa (afunda um pouco), o de trás atravessado
+    // no corrimão (visto de frente fica estreito), base larga, agachado fundo e o tronco oscilando para se equilibrar
+    case 'grind': { const wob = Math.sin(S.t * 7.5); crouch = 0.36; leanU = 0.1 + wob * 0.05; front = [Math.min(legV * 0.9 + 3.6, 7), 1.0, -0.06]; back = [-Math.min(legV * 0.8 + 3.2, 6), 1.5, 0.15, 0.42]; break; }
     case 'slide': crouch = 0.48; leanU = -0.36; front = [Math.min(legV * 1.35 + 4.4, 11.5), 0, -0.06]; back = [-0.6, 0, 0]; break;
     // v8.1: manobras no ar — grupado (mortais) e estrela (braços e pernas abertos)
     case 'flip': crouch = 0.62; leanU = 0.42; front = [1.6, -legV * 0.95 - 1.2, -0.7]; back = [-0.4, -legV * 0.85 - 1.0, -0.45]; break;
@@ -181,13 +183,13 @@ function drawHeroRig(g, P, S) {
     if (S.dead) { fx = hx + sx * 2.5; fy = -1.6 + sx; fr = sx * 0.4; }
     const ax = fx + 0.15, ay = fy - skH + 0.35;
     const [kx, ky] = ik(hx * 0.8, hipY, ax, ay, legV + 0.6, 1);
-    legs[nm] = { hx: hx * 0.8, kx, ky, ax, ay, fx, fy, fr };
+    legs[nm] = { hx: hx * 0.8, kx, ky, ax, ay, fx, fy, fr, sk: ft[3] || 1 };
   }
   const drawLeg = L => {
     limb(g, [L.hx, hipY, L.kx, L.ky, L.ax, L.ay], P.legW, HP.pants);
     ell(g, L.kx + P.legW * 0.32, L.ky, P.legW * 0.62, P.legW * 0.56); fillStroke(g, '#1c1b23', 0.4);   // joelheira
     g.fillStyle = HP.trim; ell(g, L.kx + P.legW * 0.5, L.ky, P.legW * 0.3, P.legW * 0.34); g.fill();
-    g.save(); g.translate(L.fx, L.fy); g.rotate(L.fr); drawSkate(g, P.boot * 0.92, S.wheel || 0); g.restore();
+    g.save(); g.translate(L.fx, L.fy); g.rotate(L.fr); if (L.sk !== 1) g.scale(L.sk, 1); drawSkate(g, P.boot * 0.92, S.wheel || 0); g.restore();
   };
   // ----- braços (alvos no referencial do tronco inclinado)
   const arms = {};
@@ -205,7 +207,7 @@ function drawHeroRig(g, P, S) {
       case 'tuck': if (nm === 'front') [hx, hy] = toU(legs.front.kx + 1.2, legs.front.ky - 0.4); else { hx = sxp - 2.4; hy = hipY - 0.6; } break;
       case 'air': a = S.vy < 0 ? (sx > 0 ? -0.5 : -2.0) : (sx > 0 ? -0.3 : -2.7); break;
       case 'grab': if (nm === 'front') [hx, hy] = toU(front[0] + 0.4, front[1] - skH * 0.62); else a = -2.35; break;
-      case 'grind': a = sx > 0 ? -0.45 : -2.65; break;
+      case 'grind': { const wob = Math.sin(S.t * 7.5) * 0.16; a = sx > 0 ? -0.22 + wob : -2.3 + wob; break; }   // v11: braços bem abertos, balançando
       case 'slide': if (nm === 'back') [hx, hy] = toU(-legV * 1.3 - 0.6, -0.5); else a = -0.2; break;
       case 'flip': [hx, hy] = toU((nm === 'front' ? legs.front : legs.back).kx + 0.9, (nm === 'front' ? legs.front : legs.back).ky + 0.9); break;   // abraça os joelhos
       case 'star': { const aa = sx > 0 ? 0.1 : Math.PI - 0.1, L = P.arm + 0.3; hx = sxp + Math.cos(aa) * L; hy = syp + Math.sin(aa) * L; break; }   // braços retos abertos para os lados (as mãos saem da silhueta da cabeça)

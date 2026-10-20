@@ -12,7 +12,10 @@ let AI_TOWER = null;
 const PREF = { kind: 'pref', x: 160, w: 200, h: 158, cx: 256, seed: 19 };   // torre da Prefeitura sobre o embasamento comprido
 const IGREJA = { kind: 'igreja', x: 1780, w: 96, h: 150, seed: 23 };       // Igreja Matriz (fachada rosa e creme, torre do relógio)
 const PACO = { pool: [262, 478], flags: [124, 146], bust: 600 };           // esplanada (NEAR)
-const TROLLEY = { x0: 1245, x1: 2440, y: 168 };                           // fios do trólebus (NEAR)
+// v11: as posições das camadas foram pensadas no mapa antigo; layerMap empurra cada objeto junto com os trechos novos da fase
+const layerMap = (lx, f) => { const c = lx / (f * PX) / TS; return lx + (colMap(c) - c) * TS * f * PX; };
+const nearMap = lx => layerMap(lx, 0.68);
+const TROLLEY = { x0: nearMap(1245), x1: nearMap(2440), y: 168 };         // fios do trólebus (NEAR)
 (function genLayers() {
   // longe: a serra ao fundo e a silhueta dos prédios do centro
   FAR.push({ hill: true, x: -200, w: LW * 0.12 * PX + 1400 });
@@ -24,18 +27,19 @@ const TROLLEY = { x0: 1245, x1: 2440, y: 168 };                           // fio
   }
   AI_TOWER = { x: LW * 0.12 * PX * 0.9 + 160, h: 150 };
   // meio: prédios residenciais do centro (mais espaçados, poucas janelas acesas); espaço livre em volta da Prefeitura e da Matriz
-  MID.push(PREF, IGREJA);
+  MID.push(PREF);   // v11: a Igreja Matriz agora aparece grande, ao fundo da ladeira (ver 20-ladeira.js)
   r = rng(2302); x = -80;
   const cols = ['#2f2946', '#2c2f4a', '#352d4c', '#2a2a42', '#33304a'];
   while (x < LW * 0.3 * PX + 900) {
     const w = 26 + r() * 30, h = 56 + r() * 92;
     const clash = (o, pad) => x + w > o.x - pad && x < o.x + o.w + pad;
-    if (clash(PREF, 4) || clash(IGREJA, 6)) { x += 20; continue; }
+    if (clash(PREF, 4)) { x += 20; continue; }
     MID.push({ x, w, h, col: cols[(r() * cols.length) | 0], seed: (r() * 1e6) | 0, tank: r() < 0.6, bal: r() < 0.65 });
     x += w + 8 + r() * 30;
   }
   // perto: os lugares na ordem da fase
-  const N = o => NEAR.push(o), sd = () => (r() * 1e6) | 0;
+  const N = o => { o.x = nearMap(o.x); NEAR.push(o); }, sd = () => (r() * 1e6) | 0;
+  const NA = o => NEAR.push(o);   // já na posição nova (trechos criados na v11)
   r = rng(3403);
   // esplanada do Paço
   N({ kind: 'tree', x: 2, w: 22, seed: 11 }); N({ kind: 'hedge', x: 34, w: 60 });
@@ -62,10 +66,10 @@ const TROLLEY = { x0: 1245, x1: 2440, y: 168 };                           // fio
       x += w + gap;
     }
   };
-  city(1250, TROLLEY.x1, [1650, 1740]);
+  city(1250, 2440, [1650, 1740]);
   for (let x2 = 2470; x2 < 2950; x2 += 60 + r() * 50) N({ kind: 'tree', x: x2, w: 22, seed: sd() });   // árvores da avenida antes do parque
   N({ kind: 'shelter', x: 1670, w: 54 });
-  N({ kind: 'wires', x: TROLLEY.x0, w: TROLLEY.x1 - TROLLEY.x0 });
+  N({ kind: 'wires', x: 1245, w: 2440 - 1245 });
   // Parque da Juventude: a pista de skate em frente ao Paço (fica atrás da pista em U da fase)
   N({ kind: 'park', x: 2960, w: 600 });
   // centro, trecho B
@@ -76,7 +80,21 @@ const TROLLEY = { x0: 1245, x1: 2440, y: 168 };                           // fio
   // Praça da Matriz: palmeiras, canteiros e bancos
   for (let x2 = 4470; x2 < LW * 0.68 * PX + 900; x2 += 90 + r() * 40) { N({ kind: 'palm', x: x2, w: 22, seed: sd() }); if (r() < 0.6) N({ kind: 'hedge', x: x2 + 30, w: 40 }); if (r() < 0.4) N({ kind: 'bench', x: x2 + 50, w: 14 }); }
   // postes: os altos da esplanada, os da rua, as torres de luz do parque e os de globo da praça
-  const lamp = (lx, style) => LAMPS.push({ x: lx, style, seed: (hash(lx | 0) * 1e6) | 0 });
+  // v11: esplanada mais comprida (o treino do Merlin cresceu) e a rua da ladeira da Matriz
+  { const a = SH_TUT.c * TS * 0.68 * PX, b = a + SH_TUT.n * TS * 0.68 * PX;   // o vão que o treino abriu (já no mapa novo)
+    for (let x2 = a + 6; x2 < b - 40; x2 += 96) { NA({ kind: 'tree', x: x2, w: 22, seed: sd() }); NA({ kind: 'hedge', x: x2 + 28, w: 52 }); if (r() < 0.5) NA({ kind: 'bench', x: x2 + 84, w: 14 }); } }
+  { const a = LAD.x0 * 0.68 * PX, b = LAD.x1 * 0.68 * PX, t0 = a;   // o vão da ladeira (já no mapa novo)
+    let x = t0 + 20;
+    const casa = ['#f4a261', '#e9c46a', '#8ecae6', '#f28482', '#b5e48c', '#cdb4db'];
+    while (x < t0 + (b - a) - 260) {   // casinhas e sobrados de rua de bairro, com uma árvore aqui e ali
+      const w = 46 + r() * 34, h = 30 + r() * 34;
+      NA({ kind: 'bldg', x, w, h, col: casa[(r() * casa.length) | 0], name: r() < 0.25 ? SHOPS[si++ % SHOPS.length] : null, awn: r() < 0.3 ? awns[(r() * awns.length) | 0] : null, seed: sd() });
+      x += w + 14 + r() * 26;
+      if (r() < 0.5) { NA({ kind: r() < 0.4 ? 'ipe' : 'tree', x, w: 22, seed: sd(), bloom: r() < 0.5 ? '#ff8cc6' : '#ffd23f' }); x += 30; }
+    }
+    NA({ kind: 'shelter', x: t0 + (b - a) - 230, w: 54 });
+    for (let lx = t0 + 60; lx < t0 + (b - a) - 120; lx += 200) LAMPS.push({ x: lx, style: 'rua', seed: (hash(lx | 0) * 1e6) | 0 }); }
+  const lamp = (lx, style) => { lx = nearMap(lx); LAMPS.push({ x: lx, style, seed: (hash(lx | 0) * 1e6) | 0 }); };
   for (const lx of [30, 250, 492, 728]) lamp(lx, 'paco');
   for (let lx = 1300; lx < 2440; lx += 210) lamp(lx, 'rua');
   for (const lx of [2992, 3536]) lamp(lx, 'flood');
@@ -91,7 +109,7 @@ const LY0 = -44, LY1 = 286;               // faixa vertical pintada nas camadas 
 // altura do chão na tela: com controles de toque, deixa ~100 px de tela abaixo da calçada para os botões
 const groundFrac = () => touchUI ? clamp(1 - 100 / Math.max(300, cssH), 0.72, 0.8) : 0.8;
 // topo da tela, em unidades da camada, para uma camada com paralaxe f (o chão da rua de trás fica alinhado com a calçada)
-function layerTop(f) { return 200 - groundFrac() * BGH + (cam.y - camBaseY()) * PX * f * 0.55; }
+function layerTop(f) { return 200 - groundFrac() * BGH + (cam.y - camBaseY()) * PX * f * 0.55 + (G.tilt || 0) * 26 * f; }   // v11: na ladeira o fundo sobe (parece que a rua desce)
 class ChunkLayer {
   constructor(f, res, paint, list, cw = 160, post = null) { this.f = f; this.res = res; this.paint = paint; this.list = list; this.cw = cw; this.post = post; this.cache = new Map(); this.order = []; }
   clear() { this.cache.clear(); this.order = []; }
@@ -375,7 +393,7 @@ const BILLBOARDS = [
   { lx: 1480, ai: ['ATUALIZAÇÃO', 'OBRIGATÓRIA: 99%'], rock: ['RÁDIO PIRATA 87,9', 'AQUI TOCA DE TUDO'], icon: 'radio', bar: true },
   { lx: 2060, ai: ['DISCO VOADOR?', 'NÃO EXISTE. CONFIE NA IA.'], rock: ['ELES ESTÃO ENTRE NÓS', '(E CURTEM ROCK)'], icon: 'ufo' },
   { lx: 2640, ai: ['HIT ÚNICO™', 'EM TODAS AS RÁDIOS'], rock: ['VALEU, SÃO BERNARDO!', 'O SOM É DE QUEM FAZ'], icon: 'heart' },
-].map(b => ({ ...b, on: false, t: 0 }));
+].map(b => ({ ...b, lx: layerMap(b.lx, BB_F), on: false, t: 0 }));
 function bbIcon(g, kind, x, y, s, ai) {
   g.save(); g.translate(x, y); g.scale(s, s);
   if (ai) { ell(g, 0, 0, 8, 5); g.fillStyle = '#f4f4f8'; g.fill(); g.strokeStyle = '#1b1a22'; g.lineWidth = 1; g.stroke(); ell(g, 0, 0, 3.4, 3.4); g.fillStyle = RED; g.fill(); ell(g, 0, 0, 1.3, 1.3); g.fillStyle = '#16151a'; g.fill(); }
@@ -414,7 +432,7 @@ function drawBillboard(g, b, t) {
 }
 
 // ---------- rua (camada do jogo); v9: no Paço o chão é a esplanada de granito claro
-const PACO_GX = 41 * TS;
+const PACO_GX = colMap(41) * TS;
 let RUNS = [];
 function computeRuns() { RUNS = []; let c = 0; while (c < COLS) { if (tileAt(c, 12) === T.GROUND) { const s = c; while (c < COLS && tileAt(c, 12) === T.GROUND) c++; RUNS.push([s, c - 1]); } else c++; } }
 function drawGround(g, vx0, vx1) {
@@ -525,6 +543,7 @@ function drawBackground(t, beat) {
   ctx.setTransform(KB, 0, 0, KB, -Math.round(cx * 0.12 * PX * KB), -Math.round(layerTop(0.12) * KB)); paintAITower(ctx);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   LAYER_MID.draw(cx);
+  drawMatriz();   // v11: Igreja Matriz ao fundo da ladeira (na frente dos prédios do meio, atrás das casas)
   // luz vermelha de balizamento no alto da Prefeitura
   const ml = cx * 0.3 * PX;
   if (PREF.cx > ml - 40 && PREF.cx < ml + W / KB + 40) {

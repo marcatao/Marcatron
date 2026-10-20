@@ -49,6 +49,7 @@ function makeRail(x0, y0, x1, y1, o = {}) {
 const railY = (r, x) => r.y0 + (x - r.x0) * r.m;
 // corrimão que continua a partir de uma ponta (corrimão do topo da escada emendado no da descida)
 function railNext(r, dir) {
+  if (dir > 0 && r.next) return r.next;   // v11: emenda marcada (o corrimão que entra no loop)
   for (const o of rails) if (o !== r) {
     if (dir > 0 && Math.abs(o.x0 - r.x1) < 3 && Math.abs(o.y0 - r.y1) < 3) return o;
     if (dir < 0 && Math.abs(o.x1 - r.x0) < 3 && Math.abs(o.y1 - r.y0) < 3) return o;
