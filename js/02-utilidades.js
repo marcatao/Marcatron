@@ -7,7 +7,7 @@ const rnd = (a, b) => a + Math.random() * (b - a);
 function hash(i) { let h = Math.imul((i | 0) ^ 0x9e3779b9, 0x85ebca6b); h ^= h >>> 13; h = Math.imul(h, 0xc2b2ae35); h ^= h >>> 16; return (h >>> 0) / 4294967296; }
 function rng(seed) { let s = seed >>> 0 || 1; return () => { s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; }; }
 const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
-const REC_KEY = 'marcatron.recorde.1-1.v91';   // v9.1: o herói ficou 10% mais devagar, o recorde antigo não vale mais
+const REC_KEY = 'marcatron.recorde.1-1.v10';   // v10: o herói ficou mais 7% devagar, o recorde antigo não vale mais
 const SCORE_KEY = 'marcatron.pontos.1-1';   // v8.1: melhor pontuação de manobras
 // v8: o nome do personagem é perguntado ao abrir o jogo (o último fica salvo no aparelho e vem preenchido)
 const NAME_KEY = 'marcatron.nome', NAME_DEF = 'Gabriel Rock';

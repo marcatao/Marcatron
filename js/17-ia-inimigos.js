@@ -62,15 +62,20 @@ function contactHero(e) {
 }
 
 // ---------- libertos: fogem felizes
+// v10: libertos não fogem mais: ficam onde foram despertados, virados para o herói, pulando de alegria de vez em quando
 function updFreed(e) {
-  e.ft++;
-  if (e.type === 'pigeon') { e.x += e.dir * 1.5; e.vy = Math.max(e.vy - 0.06, -1.7); e.y += e.vy; if (e.ft > 220) e.gone = true; }
-  else if (e.type === 'dog' || e.type === 'cat') {
-    e.vx = e.dir * (e.type === 'cat' ? 2.3 : 1.9);
-    if (e.onGround && !groundAhead(e, e.dir)) e.vy = e.type === 'cat' ? -3.7 : -4.1;   // pula os buracos na fuga
-    if (physBody(e) && e.onGround) e.vy = -3.4; else if (e.type === 'cat' && e.onGround && e.ft % 36 === 0) e.vy = -2.4;
-    if (e.ft > 260 || e.y > VH + 20) e.gone = true;
-  } else physBody(e, 0.3);
+  e.ft++; if (e.thankT > 0) e.thankT--;
+  const dx = heroCX() - (e.x + e.w / 2);
+  if (Math.abs(dx) > 6) e.dir = Math.sign(dx);
+  e.vx = 0;
+  if (e.type === 'pigeon') {
+    if (e.flying) {   // bate asa até o chão; sem chão embaixo (buraco), fica pairando ali mesmo
+      if (groundBelow(e.x + e.w / 2, e.y + e.h) != null) { e.vy = Math.min(e.vy + 0.08, 0.9); physBody(e, 0); if (e.onGround) { e.flying = false; e.vy = 0; } }
+      else { e.vy = lerp(e.vy, Math.sin(e.ft * 0.07) * 0.25, 0.08); e.y += e.vy; }
+    } else { physBody(e); if (e.onGround && e.ft % 96 === 48) e.vy = -1.6; }
+  } else if (e.type === 'flower') physBody(e, 0.3);
+  else { physBody(e); if (e.onGround && e.ft > 30 && e.ft % (e.type === 'cat' ? 84 : 72) === 0) e.vy = e.type === 'cat' ? -2.0 : -2.3; }
+  if (e.y > VH + 20) e.gone = true;
 }
 
 // ---------- Pombix

@@ -19,6 +19,16 @@ function drawTiles(pass2) {
     if (t === T.NP || t === T.NPEP || t === T.NBAT) glow(ctx, c * TS + 8, r * TS + 8 + oy, 11, '#b6ff3b', 0.35 + 0.15 * Math.sin(G.t * 4 + c));
   }
 }
+// v10: balão de agradecimento dos libertos (surge com um pulinho, some aos poucos)
+function drawThanks(vx0, vx1) {
+  for (const e of enemies) if (e.freed && !e.gone && e.thankT > 0 && e.x > vx0 - 40 && e.x < vx1 + 40) {
+    const age = THANK_T - e.thankT, a = Math.min(1, e.thankT / 25), sc = age < 10 ? 0.6 + 0.4 * Math.sin(age / 10 * Math.PI / 2) * 1.08 : 1;
+    const x = e.x + e.w / 2, y = e.y - 2 - Math.min(age, 10) * 0.25;
+    ctx.save(); ctx.globalAlpha *= a; ctx.translate(x, y); ctx.scale(sc, sc);
+    drawBubble(ctx, 0, 0, ['OBRIGADO PELO', 'DESPERTAR!'], { size: 4.6 });
+    ctx.restore();
+  }
+}
 function drawHeroNow(beat) {
   const h = hero;
   if (h.inv > 0 && !h.dead && (G.frame >> 2) % 2 === 0) return;
@@ -112,7 +122,7 @@ function drawHeroNow(beat) {
 }
 const HERO_L = { c: null, g: null, o: null, og: null };
 const HERO_RIM = 'rgba(255,244,214,0.92)';
-const RIM_DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1], [0.7, 0.7], [-0.7, 0.7], [0.7, -0.7], [-0.7, -0.7]];
+const RIM_DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];   // v10: 4 cópias da silhueta em vez de 8 (contorno quase igual, desenho bem mais leve)
 function drawParts() {
   for (const p of parts) {
     const a = clamp(p.life / p.max * 2, 0, 1);
@@ -206,7 +216,7 @@ function drawWorld() {
   mark('fg-actors'); drawParts();
   flushEmissive(ctx);
   drawTutorialBubble(ctx);
-  drawPops(); mark('parts');
+  drawThanks(vx0, vx1); drawPops(); mark('parts');
   if (vx1 > (STAGE_C - 1) * TS) drawStageCrowd(ctx, t, beat, G.state === 'win' || G.state === 'results');
   drawForeground(t);
   postFX(t); mark('post');

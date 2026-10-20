@@ -11,9 +11,9 @@ loadBest();
 
 // v7: de patins inline agressivo — arranca mais devagar, corre mais, tem embalo (rodinha) e freia no powerslide
 const FORMS = [
-  { name: 'BAIXINHO', w: 12, h: 14, acc: 0.0675, max: 2.7, coast: 0.026, brake: 0.14, jump: 4.2 },   // v9.1: 10% mais devagar (era 0,075 · 3,0)
-  { name: 'VARAPAU', w: 10, h: 24, acc: 0.0765, max: 3.06, coast: 0.024, brake: 0.15, jump: 5.0 },
-  { name: 'MAROMBADO', w: 16, h: 20, acc: 0.0558, max: 2.34, coast: 0.032, brake: 0.12, jump: 3.7 },
+  { name: 'BAIXINHO', w: 12, h: 14, acc: 0.0628, max: 2.51, coast: 0.026, brake: 0.14, jump: 4.2 },   // v10: mais 7% devagar (v9.1 era 0,0675 · 2,7)
+  { name: 'VARAPAU', w: 10, h: 24, acc: 0.0711, max: 2.85, coast: 0.024, brake: 0.15, jump: 5.0 },
+  { name: 'MAROMBADO', w: 16, h: 20, acc: 0.0519, max: 2.18, coast: 0.032, brake: 0.12, jump: 3.7 },
 ];
 let hero;
 function resetHero(x) {
@@ -35,7 +35,6 @@ function setForm(f, hurtFlag) {
 // ---------- efeitos
 function pop(x, y, text, col, big) { pops.push({ x, y: Math.max(y, cam.y + 0.3 * viewH()), text, col, t: 0, big: !!big }); }
 function part(o) { if (parts.length < 380) parts.push(Object.assign({ vx: 0, vy: 0, g: 0.1, life: 40, size: 2, kind: 'dot', col: '#fff', rot: 0, vr: 0 }, o, { max: o.life || 40 })); }
-const QUIPS = ['REINICIADO.', 'SEM SINAL!', 'DESLIGADO NA TOMADA.', 'CTRL+ALT+LIVRE!', 'ROOT LIBERADO.', 'FIRMWARE: ROCK.'];
 const NOTE_COLS = ['#b6ff3b', '#ff7a1a', '#ffd23f', '#7fd4ff', '#ff3fa4'];
 function noteBurst(x, y, n, spd = 1.4) { for (let i = 0; i < n; i++) part({ x, y, vx: rnd(-spd, spd), vy: rnd(-2.6, -0.8), col: NOTE_COLS[i % 5], life: 55, size: rnd(0.8, 1.2), g: 0.05, kind: 'note', vr: rnd(-0.1, 0.1) }); }
 function dust(x, y, n, spread = 1) { for (let i = 0; i < n; i++) part({ x: x + rnd(-2, 2), y, vx: rnd(-0.9, 0.9) * spread, vy: rnd(-0.7, -0.1), col: '#cfc6dc', life: 26, size: rnd(1.4, 2.6), g: -0.005, kind: 'puff' }); }
@@ -43,16 +42,22 @@ function dust(x, y, n, spread = 1) { for (let i = 0; i < n; i++) part({ x: x + r
 // ---------- interações
 function freeEnemy(e, combo = 1) {
   hero.happyT = Math.max(hero.happyT, 30);
-  e.freed = true; e.ft = 0; e.vy = -3; e.dir = (e.x + e.w / 2 < hero.x + hero.w / 2) ? -1 : 1; e.flying = e.type === 'pigeon'; stats.robots++;
-  e.state = 'free'; e.alert = 0; e.alertShow = 0; e.alarm = 0; e.charge = 0; e.closedT = 0;
-  if (e.type === 'cat') { sfx('meow', { pan: panOf(e.x), vol: 0.8 }); e.vy = -2.6; }
-  pop(e.x + e.w / 2, e.y - 8, QUIPS[stats.robots % QUIPS.length], '#b6ff3b');
-  if (combo > 1) pop(e.x + e.w / 2, e.y - 18, 'COMBO x' + combo, '#ff7a1a', true);
+  // v10: o liberto fica na fase, de frente para o herói, com carinha feliz e um balão de agradecimento
+  e.freed = true; e.ft = 0; e.vx = 0; e.vy = -3; e.dir = (e.x + e.w / 2 < hero.x + hero.w / 2) ? 1 : -1; e.flying = e.type === 'pigeon'; stats.robots++;
+  e.state = 'free'; e.alert = 0; e.alertShow = 0; e.alarm = 0; e.charge = 0; e.closedT = 0; e.thankT = THANK_T + (combo - 1) * 12;
+  if (e.type === 'cat') e.vy = -2.6; else if (e.type === 'pigeon') e.vy = -1.4;   // o pombo dá só uma levantadinha e desce batendo asa
+  if (combo > 1) pop(e.x + e.w / 2, e.y - 26, 'COMBO x' + combo, '#ff7a1a', true);
   if (combo >= 3) sfx('cheer', { vol: 0.6 });
   noteBurst(e.x + e.w / 2, e.y + 4, 9);
   for (let i = 0; i < 8; i++) part({ x: e.x + e.w / 2, y: e.y + e.h / 2, vx: rnd(-2, 2), vy: rnd(-2.5, 0), col: '#c9ced9', life: 30, size: rnd(1, 1.8), g: 0.18, kind: 'bolt', vr: rnd(-0.3, 0.3) });
   sfx('free', { vol: 0.7, pan: panOf(e.x), vary: 0.03 });
+  // reforço sonoro: o tilintar do "obrigado" e a voz feliz do bicho, logo depois do estalo da libertação
+  const at = AU.ctx ? AU.ctx.currentTime + 0.2 + (combo - 1) * 0.12 : 0, pan = panOf(e.x);
+  sfx('thanks', { when: at, vol: 0.75, pan, vary: 0.02 });
+  const voice = VOICE[e.type]; if (voice) sfx(voice[0], { when: at + 0.12, vol: voice[1], rate: voice[2], pan, vary: 0.04 });
 }
+const THANK_T = 190;   // quadros que o balão "obrigado pelo despertar" fica na tela
+const VOICE = { dog: ['bark', 0.55, 1.25], cat: ['meow', 0.75, 1.12], pigeon: ['coo', 0.6, 1.3] };
 function hurt() {
   if (hero.inv > 0 || hero.dead || G.state !== 'play' || G.cutscene) return;
   if (window.__god) { G.godHits = (G.godHits || 0) + 1; return; }   // gancho de teste
@@ -181,7 +186,7 @@ function trickBail(h) {      // pousou no meio: tombo (sem dano), perde os ponto
   pop(h.x + h.w / 2, h.y - 12, 'TOMBO! SEM PONTOS', '#ff3b5c');
   sfx('land', { vol: 0.85, rate: 0.85 }); sfx('skid', { vol: 0.55 }); dust(h.x + h.w / 2, h.y + h.h, 7, 1.4);
 }
-const MEDALS = [55, 77, 110];   // v9.1 (herói 10% mais calmo): ouro, prata e bronze em segundos (eram 50, 70 e 100)
+const MEDALS = [59, 83, 118];   // v10 (herói mais 7% calmo): ouro, prata e bronze em segundos (v9.1: 55, 77 e 110)
 function win() {
   if (G.state !== 'play') return;
   G.state = 'win'; G.winT = 0; G.timer.on = false; colorTarget = LW + 900; shocks.length = 0; projs.length = 0; G.alarmT = 0; bossBoxes.length = 0; G.cutscene = false;
@@ -396,7 +401,7 @@ function rampStep(h, F, dirIn) {
     else if ((!uphill || Math.abs(m) < 0.6) && Math.abs(h.rs) < F.max) { h.rs += dirIn * F.acc * 0.8; h.pushing = Math.abs(m) < 0.6; }
     if (h.pushing) h.stride += 0.075 + Math.abs(h.rs) * 0.02;
   }
-  h.rs = clamp(approach(h.rs, 0, 0.004), -5.58, 5.58);   // v9.1: teto 10% menor
+  h.rs = clamp(approach(h.rs, 0, 0.004), -5.19, 5.19);   // v10: teto mais 7% menor
   if (Math.abs(h.rs) > 0.3) h.face = Math.sign(h.rs);
   if (h.jbuf > 0) { doJump(h, F, h.rs * tx, h.rs * ty); return; }   // pulo com o embalo da rampa: na subida vira voo grande
   const nfx = fx + h.rs * tx, lipSide = r.dir > 0 ? nfx > r.x1 : nfx < r.x0, lowSide = r.dir > 0 ? nfx < r.x0 : nfx > r.x1;
@@ -437,7 +442,7 @@ function railAttach(h, prevFeet) {
 }
 function railStep(h, F) {
   const r = h.rail; h.grindT++;
-  h.rs = clamp(approach(h.rs + 0.2 * r.ty, 0, 0.0035), -5.04, 5.04);   // corrimão descendo acelera (v9.1: teto 10% menor)
+  h.rs = clamp(approach(h.rs + 0.2 * r.ty, 0, 0.0035), -4.69, 4.69);   // corrimão descendo acelera (v10: teto mais 7% menor)
   if (Math.abs(h.rs) > 0.2) h.face = Math.sign(h.rs);
   h.pushing = false;
   if (h.jbuf > 0) { doJump(h, F, h.rs * r.tx, h.rs * r.ty); return; }

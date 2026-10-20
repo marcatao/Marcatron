@@ -8,7 +8,7 @@ const AU = {
 const LOOP_PRE = 0.5, LOOP_LEN = 30.0;               // 16 compassos a 128 BPM
 const LAYERS = ['calma', 'banda', 'pesada', 'plateia', 'radio'];
 const LAYER_VOL = { calma: 0.95, banda: 0.9, pesada: 0.85, plateia: 0.75, radio: 0.8 };
-const SFX_WAV = ['roll', 'grind', 'push', 'grind_start', 'powerslide', 'air', 'land_skate', 'strum_A', 'strum_D', 'strum_E', 'strum_G', 'pick', 'combo', 'jump0', 'jump1', 'jump2', 'land0', 'land1', 'skid', 'bump0', 'bump1', 'note_open', 'brick', 'stomp0', 'stomp1', 'stomp2', 'free', 'hurt', 'slam', 'antenna_hit', 'zap', 'item', 'click', 'pause', 'sticks', 'bark', 'alarm', 'dive', 'charge', 'armor', 'coo', 'meow', 'dizzy'];
+const SFX_WAV = ['roll', 'grind', 'push', 'grind_start', 'powerslide', 'air', 'land_skate', 'strum_A', 'strum_D', 'strum_E', 'strum_G', 'pick', 'combo', 'jump0', 'jump1', 'jump2', 'land0', 'land1', 'skid', 'bump0', 'bump1', 'note_open', 'brick', 'stomp0', 'stomp1', 'stomp2', 'free', 'hurt', 'slam', 'antenna_hit', 'zap', 'item', 'click', 'pause', 'sticks', 'bark', 'alarm', 'dive', 'charge', 'armor', 'coo', 'meow', 'dizzy', 'thanks'];
 const SFX_LATE = ['boss_roar', 'boss_throw', 'box_break', 'boss_tired', 'boss_hit', 'boss_clank', 'boss_step', 'gate'];   // v6: chefe (carregam depois)
 const SFX_MP3 = ['ufo', 'beam', 'cheer', 'vitoria', 'morte', 'checkpoint', 'antena', 'powerup_varapau', 'powerup_marombado'];
 const VARIANTS = { jump: ['jump0', 'jump1', 'jump2'], land: ['land0', 'land1'], stomp: ['stomp0', 'stomp1', 'stomp2'], bump: ['bump0', 'bump1'] };

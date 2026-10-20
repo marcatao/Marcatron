@@ -22,13 +22,14 @@ function resize() {
 }
 let rotDismissed = false;
 window.addEventListener('resize', () => { clearTimeout(resize._t); resize._t = setTimeout(resize, 80); });
-// queda de qualidade automática se o aparelho não sustentar ~50 fps
-const perf = { acc: 0, n: 0, lastAdj: 0, skip: 120 };
+// queda de qualidade automática se o aparelho não sustentar ~55 fps
+// v10: reage antes (média acima de 20 ms) e também a trancos frequentes (quadros perdidos), não só à média
+const perf = { acc: 0, n: 0, slow: 0, lastAdj: 0, skip: 120 };
 function perfSample(dtMs, now) {
   if (window.__noAdapt || perf.skip > 0 || document.hidden || dtMs > 120) { perf.skip--; return; }
-  perf.acc += dtMs; perf.n++;
+  perf.acc += dtMs; perf.n++; if (dtMs > 24) perf.slow++;
   if (perf.n >= 120) {
-    const avg = perf.acc / perf.n; perf.acc = 0; perf.n = 0;
-    if (avg > 23 && qScale > 0.5 && now - perf.lastAdj > 2500) { qScale *= 0.82; perf.lastAdj = now; perf.skip = 60; resize(); }
+    const avg = perf.acc / perf.n, slow = perf.slow; perf.acc = 0; perf.n = 0; perf.slow = 0;
+    if ((avg > 20 || slow > 18) && qScale > 0.5 && now - perf.lastAdj > 2500) { qScale *= 0.85; perf.lastAdj = now; perf.skip = 60; resize(); }
   }
 }

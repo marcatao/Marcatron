@@ -17,6 +17,10 @@ function thinLimb(g, pts, w, col) { // perna fina com contorno proporcional
   g.strokeStyle = OUT; g.lineWidth = w + 0.5; g.stroke(); g.strokeStyle = col; g.lineWidth = w; g.stroke();
 }
 const PIG_AIR = { rise: 1, aim: 1, dive: 1, recover: 1, land: 1 };
+// v10: carinha feliz dos libertos: olho fechado de alegria (^), bochecha corada e sorriso
+function happyEye(g, x, y, r, lw = 0.42) { g.strokeStyle = OUT; g.lineWidth = lw; g.lineCap = 'round'; g.beginPath(); g.arc(x, y + r * 0.55, r, Math.PI * 1.12, Math.PI * 1.88); g.stroke(); }
+function blush(g, x, y, rx, ry = rx * 0.6) { g.fillStyle = 'rgba(255,105,140,0.6)'; ell(g, x, y, rx, ry); g.fill(); }
+function smile(g, x, y, r, lw = 0.38) { g.strokeStyle = OUT; g.lineWidth = lw; g.lineCap = 'round'; g.beginPath(); g.arc(x, y - r * 0.4, r, Math.PI * 0.2, Math.PI * 0.8); g.stroke(); }
 
 // ------------------------------------------------------------------ Pombo-Antena "Pombix" (Eletrônico / Punk quando livre)
 function drawPigeon(g, e, beat) {
@@ -132,7 +136,7 @@ function drawPigeon(g, e, beat) {
     ell(g, mx, my - 3.2, 0.62, 0.48); fillStroke(g, '#c9ced6', 0.28);
     if (((t * 2) | 0) % 2 === 0 || st !== 'walk') emitL(g, mx, my - 3.2, 2.2, RED, 0.8);
   } else {
-    g.fillStyle = '#16121e'; ell(g, hx - 1.1, hy - 0.7, 0.75, 0.8); g.fill(); g.fillStyle = '#fff'; ell(g, hx - 1.3, hy - 1.0, 0.25, 0.25); g.fill();
+    happyEye(g, hx - 1.1, hy - 0.8, 0.8, 0.45); blush(g, hx - 0.3, hy + 1.1, 0.75);
     g.beginPath(); g.moveTo(hx - 1.6, hy - 2.5);   // crista punk
     for (let i = 0; i < 4; i++) { g.lineTo(hx - 1.0 + i * 0.95, hy - 5.1 + Math.abs(i - 1.5) * 0.45); g.lineTo(hx - 0.5 + i * 0.95, hy - 2.9); }
     g.closePath(); fillStroke(g, '#ff3fa4', 0.4);
@@ -164,7 +168,7 @@ function drawDog(g, e, beat) {
   const bodyFill = free ? vgrad(g, -11, -4, [[0, '#dca56c'], [1, '#a8693a']]) : metalGrad(g, -11, -4);
   // ritmo das patas
   let run, amp;
-  if (free) { run = e.ft * 0.5; amp = 1.6; } else if (dash) { run = t * 32; amp = 2.2; } else if (st === 'walk') { run = beat * Math.PI * 2; amp = 0.9; } else { run = 0; amp = 0; }
+  if (free) { run = e.ft * 0.3; amp = e.onGround ? 0 : 1.2; } else if (dash) { run = t * 32; amp = 2.2; } else if (st === 'walk') { run = beat * Math.PI * 2; amp = 0.9; } else { run = 0; amp = 0; }
   const spread = st === 'crouch' || chg > 0 ? 1 : 0;
   const leg = (x, ph, far) => {
     const dx = Math.sin(run + ph) * amp - (x < 0 ? spread * 1.1 : -spread * 1.0), lift = Math.max(0, -Math.cos(run + ph)) * amp * 0.5;
@@ -255,7 +259,7 @@ function drawDog(g, e, beat) {
     if (angry || chg > 0) { g.strokeStyle = OUT; g.lineWidth = 0.6; g.lineCap = 'round'; g.beginPath(); g.moveTo(hx - 3.2, hy - 2.6); g.lineTo(hx - 0.5, hy - 1.7); g.stroke(); }
     emitL(g, hx - 1.6, hy - 0.85, angry ? 3.8 : 3.0, RED, 0.9);
   } else {
-    g.fillStyle = '#16121e'; ell(g, hx - 1.4, hy - 0.7, 0.7, 0.8); g.fill(); g.fillStyle = '#fff'; ell(g, hx - 1.6, hy - 1.0, 0.22, 0.22); g.fill();
+    happyEye(g, hx - 1.4, hy - 0.8, 0.8, 0.45); blush(g, hx - 0.4, hy + 0.9, 0.8);
     g.fillStyle = '#ff6f8a'; ell(g, hx - 4.6, hy + 3.6 + Math.sin(e.ft * 0.6) * 0.3, 0.7, 1.1); g.fill();
   }
   g.restore();
@@ -330,8 +334,7 @@ function drawFlower(g, e, beat) {
   }
   if (free) {
     g.fillStyle = '#3a210e'; for (let i = 0; i < 11; i++) { ell(g, Math.cos(i * 2.4) * 2.6 * (i / 11), Math.sin(i * 2.4) * 2.6 * (i / 11), 0.32, 0.32); g.fill(); }
-    g.fillStyle = '#1c120a'; ell(g, -1.2, -0.6, 0.45, 0.55); g.fill(); ell(g, 1.2, -0.6, 0.45, 0.55); g.fill();
-    g.fillStyle = '#fff'; ell(g, -1.35, -0.8, 0.14, 0.14); g.fill(); ell(g, 1.05, -0.8, 0.14, 0.14); g.fill();
+    happyEye(g, -1.2, -0.7, 0.55, 0.36); happyEye(g, 1.2, -0.7, 0.55, 0.36);
     g.strokeStyle = '#1c120a'; g.lineWidth = 0.4; g.beginPath(); g.arc(0, 0.4, 1.4, 0.25, Math.PI - 0.25); g.stroke();
     g.fillStyle = 'rgba(255,120,120,0.45)'; ell(g, -2.3, 0.6, 0.6, 0.35); g.fill(); ell(g, 2.3, 0.6, 0.6, 0.35); g.fill();
   }
@@ -407,13 +410,13 @@ function drawCat(g, e, beat) {
   g.restore();
 }
 function drawFreeCat(g, e) {
-  // gato laranja malhado, coleira de tachas verde-limão, fugindo feliz
-  const run = e.onGround ? Math.sin(e.ft * 0.55) : 0.6, air = !e.onGround;
+  // gato laranja malhado, coleira de tachas verde-limão, parado feliz (v10: não foge mais)
+  const run = e.onGround ? Math.sin(e.ft * 0.12) * 0.6 : 0.6, air = !e.onGround;
   g.save(); g.translate(e.x + e.w / 2, e.y + e.h); g.scale(ES, ES); if (e.dir > 0) g.scale(-1, 1);
   g.strokeStyle = OUT; g.lineWidth = 2.0; g.lineCap = 'round'; g.beginPath(); g.moveTo(4.6, -6.0); g.quadraticCurveTo(8.0, -7.0 + run, 7.6, -11.0 + run * 0.6); g.stroke();
   g.strokeStyle = '#f08a2c'; g.lineWidth = 1.3; g.stroke();
   for (const [x, ph, far] of [[-2.6, 0, 1], [3.0, Math.PI, 1], [-3.6, Math.PI, 0], [2.0, 0, 0]]) {
-    const dx = (air ? (x < 0 ? -1.6 : 1.6) : Math.sin(e.ft * 0.55 + ph) * 1.8);
+    const dx = air ? (x < 0 ? -1.6 : 1.6) : x < 0 ? -0.4 : 0.4;
     thinLimb(g, [x, -4.4, x + dx * 0.5, -2.2, x + dx, -0.4], 1.25, far ? '#d87422' : '#f59a3c');
   }
   ell(g, 0.6, -6.0, 5.8, 3.0); fillStroke(g, vgrad(g, -9, -3, [[0, '#ffb35c'], [1, '#e07a22']]), 0.6);
@@ -423,7 +426,7 @@ function drawFreeCat(g, e) {
   for (const s of [1, -1]) { g.beginPath(); g.moveTo(hx - 1.8 + s * 1.2, hy - 1.6); g.lineTo(hx - 0.6 + s * 1.6, hy - 4.6); g.lineTo(hx + 0.6 + s * 1.6, hy - 1.4); g.closePath(); fillStroke(g, '#f59a3c', 0.45); }
   ell(g, hx, hy, 3.1, 2.8); fillStroke(g, vgrad(g, hy - 3, hy + 3, [[0, '#ffb35c'], [1, '#e8862c']]), 0.6);
   g.fillStyle = '#fff3e0'; ell(g, hx - 1.4, hy + 1.0, 1.6, 1.2); g.fill();
-  g.fillStyle = '#7ce35a'; ell(g, hx - 1.0, hy - 0.6, 0.7, 0.85); g.fill(); g.fillStyle = '#16121e'; ell(g, hx - 1.1, hy - 0.6, 0.28, 0.7); g.fill();
+  happyEye(g, hx - 1.0, hy - 0.7, 0.75, 0.42); blush(g, hx - 0.3, hy + 0.6, 0.7); smile(g, hx - 2.0, hy + 1.6, 0.7, 0.3);
   g.fillStyle = '#ff7f9a'; ell(g, hx - 2.8, hy + 0.5, 0.45, 0.35); g.fill();
   g.strokeStyle = '#fff'; g.lineWidth = 0.15; g.beginPath(); g.moveTo(hx - 2.6, hy + 0.9); g.lineTo(hx - 5.2, hy + 0.4); g.moveTo(hx - 2.6, hy + 1.1); g.lineTo(hx - 5.0, hy + 1.6); g.stroke();
   g.save(); g.translate(hx + 1.6, hy + 2.2); g.rotate(-0.4); rr(g, -0.6, -1.8, 1.2, 3.6, 0.4); fillStroke(g, '#b6ff3b', 0.3); g.restore();
