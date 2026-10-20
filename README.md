@@ -1,8 +1,20 @@
 # Marcatron
 
-Jogo de plataforma de patins (fase 1-1) em um único `index.html` com canvas, mais os efeitos e trilhas em `audio/`.
+Jogo de plataforma de patins (fase 1-1) desenhado em canvas.
 
-Para jogar localmente, sirva a pasta por HTTP (o áudio é carregado via `fetch`):
+## Estrutura
+
+- `index.html`: a página (marcação, fontes e a ordem dos scripts).
+- `css/`: `base.css` (reset) e `style.css` (layout, botões de toque e caixa do nome).
+- `js/`: o código do jogo, um arquivo por seção, carregados em ordem numérica (`01-constantes.js` … `20-render.js`).
+  Todos compartilham o escopo global, então a ordem no `index.html` importa.
+- `audio/`: trilhas em camadas (`.mp3`) e efeitos sonoros (`.wav`).
+
+Não há pasta de imagens: toda a arte (herói, inimigos, cenário, blocos) é desenhada por código nos scripts.
+
+## Rodando localmente
+
+Sirva a pasta por HTTP (o áudio é carregado via `fetch`):
 
 ```sh
 python3 -m http.server 8000

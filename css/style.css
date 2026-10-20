@@ -1,0 +1,40 @@
+:root{
+  /* Layout: uma tela de jogo em canvas HD (240 unidades de altura, resolução nativa); controles de toque sobrepostos */
+  --bg:#07050d; --ink:#f2eefa; --dim:#9a93ad; --lime:#b6ff3b; --orange:#ff7a1a; --pink:#ff3fa4;
+  --glass:rgba(18,14,30,.55); --line:rgba(255,255,255,.18);
+  --pad:rgba(14,10,26,.14); --pad-on:rgba(182,255,59,.2); --pad-line:rgba(255,255,255,.2);
+  --ui:"Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);overflow:hidden;overscroll-behavior:none;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;font-family:var(--ui)}
+#wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 40%,#1a1030 0%,var(--bg) 70%)}
+canvas{display:block;background:#000}
+#top{position:fixed;top:calc(8px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:6}
+#top button{width:34px;height:30px;display:flex;align-items:center;justify-content:center;color:var(--ink);background:var(--glass);border:1px solid var(--line);border-radius:8px;cursor:pointer;padding:0;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+#top button svg{width:15px;height:15px}
+#top button:hover{border-color:rgba(182,255,59,.6)}
+#top button:focus-visible,.tbtn:focus-visible,#rot button:focus-visible{outline:2px solid var(--lime);outline-offset:2px}
+#top button[aria-pressed="true"]{color:var(--orange)}
+#touch[hidden],#rot[hidden]{display:none!important}
+#touch{position:fixed;inset:0;pointer-events:none;z-index:5}
+.tbtn{position:absolute;pointer-events:auto;touch-action:none;display:flex;align-items:center;justify-content:center;font:800 14px/1 var(--ui);letter-spacing:.08em;color:rgba(242,238,250,.62);background:var(--pad);border:2px solid var(--pad-line);text-shadow:0 1px 2px rgba(0,0,0,.55)}
+.tbtn.on{background:var(--pad-on);border-color:rgba(182,255,59,.85);color:#f2eefa}
+#pad{left:calc(12px + env(safe-area-inset-left,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));width:150px;height:68px;border-radius:34px;justify-content:space-between;padding:0 16px}
+#pad svg{width:24px;height:24px;opacity:.5}
+#pad.l svg:first-child,#pad.r svg:last-child{opacity:1;color:var(--lime)}
+#jump{right:calc(14px + env(safe-area-inset-right,0px));bottom:calc(14px + env(safe-area-inset-bottom,0px));width:76px;height:76px;border-radius:50%}
+#act{right:calc(100px + env(safe-area-inset-right,0px));bottom:calc(30px + env(safe-area-inset-bottom,0px));width:60px;height:60px;border-radius:50%;color:rgba(255,154,80,.75)}
+#act.on{background:rgba(255,122,26,.2);border-color:rgba(255,122,26,.85);color:#ffd2ad}
+#rot{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(116px + env(safe-area-inset-bottom,0px));z-index:7;display:flex;gap:12px;align-items:center;font:600 15px/1.35 var(--ui);color:var(--ink);background:rgba(18,14,30,.92);border:1px solid var(--orange);padding:10px 14px;border-radius:10px;width:max-content;max-width:calc(100% - 32px)}
+#rot button{font:800 14px/1 var(--ui);color:#111;background:var(--lime);border:0;border-radius:6px;padding:8px 12px}
+/* v8: nome do personagem, perguntado ao abrir o jogo */
+#nameBox{position:fixed;z-index:8;left:max(16px,6vw);bottom:17%;display:flex;flex-direction:column;gap:8px;padding:12px 14px;max-width:calc(100% - 32px);background:rgba(18,12,30,.9);border:2px solid var(--lime);border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.5)}
+#nameBox[hidden]{display:none!important}
+#nameBox.top{top:calc(8px + env(safe-area-inset-top,0px));bottom:auto;left:50%;transform:translateX(-50%)}
+#nameBox label{font:800 15px/1 var(--ui);letter-spacing:.06em;color:var(--lime)}
+#nameBox .row{display:flex;gap:8px}
+#nameIn{font:800 22px/1.1 var(--ui);color:#fff;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.3);border-radius:8px;padding:8px 10px;width:min(280px,58vw);min-width:0;-webkit-user-select:text;user-select:text;touch-action:manipulation}
+#nameIn:focus{outline:2px solid var(--orange);outline-offset:1px}
+#nameGo{font:800 18px/1 var(--ui);color:#160c02;background:var(--orange);border:0;border-radius:8px;padding:0 16px;cursor:pointer;touch-action:manipulation;white-space:nowrap;flex:none}
+#nameGo:focus-visible{outline:2px solid #fff;outline-offset:2px}
