@@ -239,7 +239,7 @@ function updateHero() {
   if (h.stunT > 0) h.stunT--;
   const dirIn = h.stunT > 0 ? 0 : playing && !auto ? (input.right ? 1 : 0) - (input.left ? 1 : 0) : (h.x + h.w / 2 < (GOAL_C + 3) * TS - 6 ? 1 : 0);
   h.slope = playing && !auto && !talk ? slopeK(h.x + h.w / 2) : 0;   // v11: na ladeira o embalo vem sozinho e o teto sobe
-  const lim = (playing && !auto ? F.max : auto ? 1.7 : 1.1) * (1 + 0.42 * h.slope);
+  const lim = (playing && !auto ? F.max : auto ? 1.7 : 1.1) * (1 + 0.5 * h.slope);   // v12: ladeira mais íngreme, mais embalo
   if (G.skidCd > 0) G.skidCd--;
   if (h.cd > 0) h.cd--; if (h.strum > 0) h.strum--; if (h.inv > 0) h.inv--;
   if (h.slideCd > 0) h.slideCd--; if (h.railCd > 0) h.railCd--;
@@ -331,7 +331,7 @@ function freeStep(h, F, dirIn, lim, playing, auto) {
     }
     h.face = dirIn;
   } else h.vx = approach(h.vx, 0, h.onGround ? (playing && !auto ? F.coast : 0.08) : 0.006);
-  if (h.slope > 0 && h.onGround && h.slideT === 0 && dirIn >= 0) { h.vx = Math.min(lim, h.vx + 0.055 * h.slope); if (dirIn === 0) h.face = 1; }   // descida: a gravidade empurra
+  if (h.slope > 0 && h.onGround && h.slideT === 0 && dirIn >= 0) { h.vx = Math.min(lim, h.vx + 0.065 * h.slope); if (dirIn === 0) h.face = 1; }   // descida: a gravidade empurra
   if (Math.abs(h.vx) > lim && h.onGround && h.slideT === 0) h.vx = Math.sign(h.vx) * Math.max(lim, Math.abs(h.vx) - 0.035);   // embalo extra das rampas some aos poucos
   if (h.pushing) { const p0 = h.stride; h.stride += 0.075 + Math.abs(h.vx) * 0.02; if (Math.floor(p0 / Math.PI) !== Math.floor(h.stride / Math.PI)) sfx('push', { vol: 0.3, vary: 0.08, pan: panOf(h.x) }); }
   if (h.jbuf > 0 && (h.onGround || h.coyote > 0)) doJump(h, F, h.vx, 0);
@@ -557,10 +557,10 @@ function updateCamera(snap) {
   if (hero.dead && !snap) return;
   const ending = G.state === 'win' || G.state === 'results';
   const bc = !ending ? bossCamera() : null;           // luta: enquadra herói e chefe
-  const zt = ending ? VHV / 206 : bc ? bc.zoom : 1 + SLOMO_ZOOM * G.slomo;   // no fim, a câmera abre para mostrar o palco inteiro; no pulo alto, aproxima
+  const zt = ending ? VHV / 206 : bc ? bc.zoom : lerp(1, LAD_ZOOM, slopeK(hero.x + hero.w / 2)) + SLOMO_ZOOM * G.slomo;   // v12: na ladeira a câmera abre   // no fim, a câmera abre para mostrar o palco inteiro; no pulo alto, aproxima
   cam.zoom = snap ? zt : cam.zoom + (zt - cam.zoom) * (ending || bc ? 0.035 : 0.09);   // a aproximação do pulo alto é mais rápida
   const vw = viewW(), vh = viewH(), base = camBaseY();
-  G.lead += (hero.face * (30 + Math.min(3.2, Math.abs(hero.vx)) * 7) - G.lead) * 0.03;   // de patins, olha mais longe quando está rápido (v9.1: mais calmo)
+  G.lead += (hero.face * (30 + Math.min(3.2, Math.abs(hero.vx)) * 7 + 46 * slopeK(hero.x + hero.w / 2)) - G.lead) * 0.03;   // v12: na ladeira olha mais à frente   // de patins, olha mais longe quando está rápido (v9.1: mais calmo)
   let tx = hero.x + hero.w / 2 - vw / 2 + G.lead * (1 - 0.6 * G.slomo);
   if (ending) tx = (STAGE_C + 8) * TS - vw / 2;
   else if (bc) tx = bc.hi - bc.lo <= vw ? (bc.lo + bc.hi) / 2 - vw / 2 : bc.onBoss ? (boss.x > bc.hx ? boss.x + 52 - vw : boss.x - 52) : (boss.x > bc.hx ? bc.hx - 34 : bc.hx + 34 - vw);
