@@ -1,0 +1,288 @@
+#include "totvs.ch"
+#include "fwmvcdef.ch"
+
+/*
+  Tabela ZA1 - Pedidos de Venda (Modelo 2: cabeçalho e itens na mesma tabela)
+
+  Índice 1: ZA1_FILIAL + ZA1_NUM + ZA1_ITEM
+
+  Campos de cabeçalho (repetidos em cada registro de item):
+    ZA1_NUM     C  6     Número do pedido      (X3_RELACAO: GetSXENum("ZA1","ZA1_NUM"))
+    ZA1_EMISSA  D  8     Data de emissão       (X3_RELACAO: dDataBase)
+    ZA1_CLIENT  C  6     Código do cliente     (F3: SA1)
+    ZA1_LOJA    C  2     Loja do cliente
+    ZA1_NOMCLI  C  40    Nome do cliente       (virtual)
+    ZA1_CONDPG  C  3     Condição de pagamento (F3: SE4)
+    ZA1_STATUS  C  1     Status: 1=Aberto; 2=Faturado; 3=Cancelado
+
+  Campos de item (grid):
+    ZA1_ITEM    C  2     Item
+    ZA1_PRODUT  C  15    Produto               (F3: SB1)
+    ZA1_DESCRI  C  30    Descrição do produto  (virtual)
+    ZA1_QUANT   N  12,2  Quantidade
+    ZA1_PRCVEN  N  14,2  Preço unitário
+    ZA1_TOTAL   N  14,2  Valor total do item
+*/
+
+#define CAMPOS_CABECALHO "ZA1_NUM|ZA1_EMISSA|ZA1_CLIENT|ZA1_LOJA|ZA1_NOMCLI|ZA1_CONDPG|ZA1_STATUS"
+
+#define STATUS_ABERTO    "1"
+#define STATUS_FATURADO  "2"
+#define STATUS_CANCELADO "3"
+
+/*/{Protheus.doc} VENDA02
+Browse da rotina de Pedidos de Venda em MVC Modelo 2 (tabela ZA1).
+@type user function
+@author Marcato
+@since 20/10/2026
+@version 1.0
+/*/
+User Function VENDA02()
+  Local oBrowse as Object
+
+  oBrowse := FWMBrowse():New()
+  oBrowse:SetAlias("ZA1")
+  oBrowse:SetDescription("Pedidos de Venda")
+  oBrowse:AddLegend("ZA1_STATUS == '" + STATUS_ABERTO + "'",    "GREEN", "Aberto")
+  oBrowse:AddLegend("ZA1_STATUS == '" + STATUS_FATURADO + "'",  "RED",   "Faturado")
+  oBrowse:AddLegend("ZA1_STATUS == '" + STATUS_CANCELADO + "'", "BLACK", "Cancelado")
+  oBrowse:Activate()
+Return
+
+/*/{Protheus.doc} MenuDef
+Opções de menu da rotina.
+@type static function
+@author Marcato
+@since 20/10/2026
+@return array, opções do aRotina
+/*/
+Static Function MenuDef() as Array
+  Local aRotina := {} as Array
+
+  ADD OPTION aRotina TITLE "Visualizar" ACTION "VIEWDEF.VENDA02" OPERATION 2 ACCESS 0
+  ADD OPTION aRotina TITLE "Incluir"    ACTION "VIEWDEF.VENDA02" OPERATION 3 ACCESS 0
+  ADD OPTION aRotina TITLE "Alterar"    ACTION "VIEWDEF.VENDA02" OPERATION 4 ACCESS 0
+  ADD OPTION aRotina TITLE "Excluir"    ACTION "VIEWDEF.VENDA02" OPERATION 5 ACCESS 0
+  ADD OPTION aRotina TITLE "Imprimir"   ACTION "VIEWDEF.VENDA02" OPERATION 8 ACCESS 0
+  ADD OPTION aRotina TITLE "Copiar"     ACTION "VIEWDEF.VENDA02" OPERATION 9 ACCESS 0
+Return aRotina
+
+/*/{Protheus.doc} ModelDef
+Modelo de dados: cabeçalho (ZA1MASTER) e itens (ZA1DETAIL) a partir da mesma tabela ZA1.
+O cabeçalho é apenas de consulta; seus valores são gravados em cada item pela relação.
+@type static function
+@author Marcato
+@since 20/10/2026
+@return object, instância de MPFormModel
+/*/
+Static Function ModelDef() as Object
+  Local oModel   as Object
+  Local oStruCab as Object
+  Local oStruIte as Object
+  Local bWhenInc as Codeblock
+
+  oStruCab := FWFormStruct(1, "ZA1", {|cCampo| EhCampoCabecalho(cCampo)})
+  oStruIte := FWFormStruct(1, "ZA1", {|cCampo| !EhCampoCabecalho(cCampo)})
+
+  // Dados que identificam o pedido só podem ser informados na inclusão,
+  // pois são replicados em todos os itens já gravados
+  bWhenInc := {|oSubModel| oSubModel:GetOperation() == MODEL_OPERATION_INSERT}
+  oStruCab:SetProperty("ZA1_NUM",    MODEL_FIELD_WHEN, bWhenInc)
+  oStruCab:SetProperty("ZA1_EMISSA", MODEL_FIELD_WHEN, bWhenInc)
+  oStruCab:SetProperty("ZA1_CLIENT", MODEL_FIELD_WHEN, bWhenInc)
+  oStruCab:SetProperty("ZA1_LOJA",   MODEL_FIELD_WHEN, bWhenInc)
+  oStruCab:SetProperty("ZA1_STATUS", MODEL_FIELD_WHEN, {|| .F.})
+  oStruCab:SetProperty("ZA1_STATUS", MODEL_FIELD_INIT, {|| STATUS_ABERTO})
+
+  // Gatilhos
+  oStruCab:AddTrigger("ZA1_LOJA",   "ZA1_NOMCLI", {|| .T.}, {|oSubModel| NomeCliente(oSubModel)})
+  oStruIte:AddTrigger("ZA1_PRODUT", "ZA1_DESCRI", {|| .T.}, {|oSubModel| DadoProduto(oSubModel, "B1_DESC")})
+  oStruIte:AddTrigger("ZA1_PRODUT", "ZA1_PRCVEN", {|| .T.}, {|oSubModel| DadoProduto(oSubModel, "B1_PRV1")})
+  oStruIte:AddTrigger("ZA1_QUANT",  "ZA1_TOTAL",  {|| .T.}, {|oSubModel| TotalItem(oSubModel)})
+  oStruIte:AddTrigger("ZA1_PRCVEN", "ZA1_TOTAL",  {|| .T.}, {|oSubModel| TotalItem(oSubModel)})
+
+  oModel := MPFormModel():New("VENDA02M", /*bPre*/, {|oMdl| ValidaPedido(oMdl)})
+  oModel:SetDescription("Pedidos de Venda")
+
+  oModel:AddFields("ZA1MASTER", /*cOwner*/, oStruCab)
+  oModel:GetModel("ZA1MASTER"):SetDescription("Cabeçalho do Pedido")
+  oModel:GetModel("ZA1MASTER"):SetOnlyQuery(.T.)
+
+  oModel:AddGrid("ZA1DETAIL", "ZA1MASTER", oStruIte, /*bLinePre*/, {|oGrid| ValidaItem(oGrid)})
+  oModel:GetModel("ZA1DETAIL"):SetDescription("Itens do Pedido")
+  oModel:GetModel("ZA1DETAIL"):SetOptional(.F.)
+
+  // A relação replica os campos do cabeçalho em cada item gravado
+  oModel:SetRelation("ZA1DETAIL", {;
+    {"ZA1_FILIAL", "FWxFilial('ZA1')"},;
+    {"ZA1_NUM",    "ZA1_NUM"},;
+    {"ZA1_EMISSA", "ZA1_EMISSA"},;
+    {"ZA1_CLIENT", "ZA1_CLIENT"},;
+    {"ZA1_LOJA",   "ZA1_LOJA"},;
+    {"ZA1_CONDPG", "ZA1_CONDPG"},;
+    {"ZA1_STATUS", "ZA1_STATUS"};
+  }, ZA1->(IndexKey(1)))
+
+  oModel:SetPrimaryKey({"ZA1_FILIAL", "ZA1_NUM", "ZA1_ITEM"})
+
+  oModel:AddCalc("ZA1TOTAL", "ZA1MASTER", "ZA1DETAIL", "ZA1_QUANT", "TOT_QUANT", "SUM", /*bCond*/, /*bInit*/, "Quantidade Total")
+  oModel:AddCalc("ZA1TOTAL", "ZA1MASTER", "ZA1DETAIL", "ZA1_TOTAL", "TOT_VALOR", "SUM", /*bCond*/, /*bInit*/, "Valor Total")
+
+  oModel:SetVldActivate({|oMdl| PodeAtivar(oMdl)})
+Return oModel
+
+/*/{Protheus.doc} ViewDef
+Interface: cabeçalho no topo, grid de itens ao centro e totais no rodapé.
+@type static function
+@author Marcato
+@since 20/10/2026
+@return object, instância de FWFormView
+/*/
+Static Function ViewDef() as Object
+  Local oView    as Object
+  Local oModel   as Object
+  Local oStruCab as Object
+  Local oStruIte as Object
+  Local oStruTot as Object
+
+  oModel   := FWLoadModel("VENDA02")
+  oStruCab := FWFormStruct(2, "ZA1", {|cCampo| EhCampoCabecalho(cCampo)})
+  oStruIte := FWFormStruct(2, "ZA1", {|cCampo| !EhCampoCabecalho(cCampo)})
+  oStruTot := FWCalcStruct(oModel:GetModel("ZA1TOTAL"))
+
+  oView := FWFormView():New()
+  oView:SetModel(oModel)
+
+  oView:AddField("VIEW_CAB", oStruCab, "ZA1MASTER")
+  oView:AddGrid("VIEW_ITE",  oStruIte, "ZA1DETAIL")
+  oView:AddField("VIEW_TOT", oStruTot, "ZA1TOTAL")
+
+  oView:CreateHorizontalBox("BOX_CAB", 30)
+  oView:CreateHorizontalBox("BOX_ITE", 55)
+  oView:CreateHorizontalBox("BOX_TOT", 15)
+
+  oView:SetOwnerView("VIEW_CAB", "BOX_CAB")
+  oView:SetOwnerView("VIEW_ITE", "BOX_ITE")
+  oView:SetOwnerView("VIEW_TOT", "BOX_TOT")
+
+  oView:EnableTitleView("VIEW_ITE", "Itens do Pedido")
+  oView:EnableTitleView("VIEW_TOT", "Totais")
+  oView:AddIncrementField("VIEW_ITE", "ZA1_ITEM")
+Return oView
+
+/*/{Protheus.doc} EhCampoCabecalho
+Indica se o campo pertence ao cabeçalho do pedido.
+@type static function
+@author Marcato
+@since 20/10/2026
+@param cCampo, character, nome do campo
+@return logical, .T. quando o campo é de cabeçalho
+/*/
+Static Function EhCampoCabecalho(cCampo as Character) as Logical
+Return AllTrim(cCampo) + "|" $ CAMPOS_CABECALHO + "|"
+
+/*/{Protheus.doc} PodeAtivar
+Impede alterar ou excluir pedidos que não estejam em aberto.
+@type static function
+@author Marcato
+@since 20/10/2026
+@param oModel, object, modelo de dados
+@return logical, .T. quando o modelo pode ser ativado
+/*/
+Static Function PodeAtivar(oModel as Object) as Logical
+  Local nOperacao := oModel:GetOperation() as Numeric
+  Local lPermite  := .T. as Logical
+
+  If (nOperacao == MODEL_OPERATION_UPDATE .Or. nOperacao == MODEL_OPERATION_DELETE) .And. ZA1->ZA1_STATUS != STATUS_ABERTO
+    Help(NIL, NIL, "VENDA02", NIL, "Somente pedidos em aberto podem ser alterados ou excluídos.", 1, 0, NIL, NIL, NIL, NIL, NIL, {"Verifique o status do pedido na legenda."})
+    lPermite := .F.
+  EndIf
+Return lPermite
+
+/*/{Protheus.doc} ValidaPedido
+Validação geral (TudoOk) do pedido.
+@type static function
+@author Marcato
+@since 20/10/2026
+@param oModel, object, modelo de dados
+@return logical, .T. quando o pedido é válido
+/*/
+Static Function ValidaPedido(oModel as Object) as Logical
+  Local oCab    as Object
+  Local lValido := .T. as Logical
+
+  If oModel:GetOperation() == MODEL_OPERATION_DELETE
+    Return .T.
+  EndIf
+
+  oCab := oModel:GetModel("ZA1MASTER")
+
+  If !ExistCpo("SA1", oCab:GetValue("ZA1_CLIENT") + oCab:GetValue("ZA1_LOJA"))
+    lValido := .F.
+  ElseIf !Empty(oCab:GetValue("ZA1_CONDPG")) .And. !ExistCpo("SE4", oCab:GetValue("ZA1_CONDPG"))
+    lValido := .F.
+  ElseIf oModel:GetModel("ZA1TOTAL"):GetValue("TOT_VALOR") <= 0
+    Help(NIL, NIL, "VENDA02", NIL, "O pedido não possui valor.", 1, 0, NIL, NIL, NIL, NIL, NIL, {"Informe ao menos um item com quantidade e preço."})
+    lValido := .F.
+  EndIf
+Return lValido
+
+/*/{Protheus.doc} ValidaItem
+Validação de linha (LinhaOk) do grid de itens.
+@type static function
+@author Marcato
+@since 20/10/2026
+@param oGrid, object, submodelo do grid
+@return logical, .T. quando a linha é válida
+/*/
+Static Function ValidaItem(oGrid as Object) as Logical
+  Local lValido := .T. as Logical
+
+  If oGrid:IsDeleted()
+    Return .T.
+  EndIf
+
+  If !ExistCpo("SB1", oGrid:GetValue("ZA1_PRODUT"))
+    lValido := .F.
+  ElseIf oGrid:GetValue("ZA1_QUANT") <= 0
+    Help(NIL, NIL, "VENDA02", NIL, "A quantidade deve ser maior que zero.", 1, 0)
+    lValido := .F.
+  ElseIf oGrid:GetValue("ZA1_PRCVEN") <= 0
+    Help(NIL, NIL, "VENDA02", NIL, "O preço unitário deve ser maior que zero.", 1, 0)
+    lValido := .F.
+  EndIf
+Return lValido
+
+/*/{Protheus.doc} NomeCliente
+Gatilho: retorna o nome do cliente informado no cabeçalho.
+@type static function
+@author Marcato
+@since 20/10/2026
+@param oCab, object, submodelo do cabeçalho
+@return character, nome do cliente
+/*/
+Static Function NomeCliente(oCab as Object) as Character
+Return Posicione("SA1", 1, FWxFilial("SA1") + oCab:GetValue("ZA1_CLIENT") + oCab:GetValue("ZA1_LOJA"), "A1_NOME")
+
+/*/{Protheus.doc} DadoProduto
+Gatilho: retorna um campo do cadastro do produto informado na linha.
+@type static function
+@author Marcato
+@since 20/10/2026
+@param oGrid, object, submodelo do grid
+@param cCampo, character, campo da SB1 a retornar
+@return variant, conteúdo do campo
+/*/
+Static Function DadoProduto(oGrid as Object, cCampo as Character) as Variant
+Return Posicione("SB1", 1, FWxFilial("SB1") + oGrid:GetValue("ZA1_PRODUT"), cCampo)
+
+/*/{Protheus.doc} TotalItem
+Gatilho: calcula o valor total da linha.
+@type static function
+@author Marcato
+@since 20/10/2026
+@param oGrid, object, submodelo do grid
+@return numeric, quantidade x preço unitário
+/*/
+Static Function TotalItem(oGrid as Object) as Numeric
+Return Round(oGrid:GetValue("ZA1_QUANT") * oGrid:GetValue("ZA1_PRCVEN"), TamSX3("ZA1_TOTAL")[2])

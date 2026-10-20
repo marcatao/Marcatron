@@ -1,0 +1,3 @@
+# Fontes Protheus ficam em CP1252 no disco (exigência do compilador) e em UTF-8 no repositório
+*.tlpp working-tree-encoding=CP1252
+*.prw  working-tree-encoding=CP1252
