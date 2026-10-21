@@ -116,6 +116,7 @@ function drawHeroNow(beat) {
   og.globalCompositeOperation = 'source-over';
   ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.drawImage(HERO_L.o, 0, 0, cw, chh, ix - ox0, iy - oy0, cw, chh);
+  if (SPD > 0.25 && !h.dead) { const d = -(Math.sign(h.vx) || h.face) * K * 2.4 * SPD; for (let k = 3; k >= 1; k--) { ctx.globalAlpha = 0.26 * SPD * (1 - k / 4); ctx.drawImage(HERO_L.c, 0, 0, cw, chh, ix - ox0 + d * k, iy - oy0, cw, chh); } ctx.globalAlpha = 1; }   // v13: rastro de velocidade
   ctx.drawImage(HERO_L.c, 0, 0, cw, chh, ix - ox0, iy - oy0, cw, chh);
   for (const [gx, gy, gr, ga] of glows) glow(ctx, gx + ix - ox0, gy + iy - oy0, gr, '#b6ff3b', ga);
   ctx.restore();
