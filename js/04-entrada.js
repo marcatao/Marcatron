@@ -46,7 +46,8 @@ function askName() {
   if (!COARSE) setTimeout(() => { try { nameIn.focus({ preventScroll: true }); nameIn.select(); } catch (_) {} }, 60);
 }
 function confirmName() {
-  heroName = cleanName(nameIn.value) || NAME_DEF; store.set(NAME_KEY, heroName);
+  heroName = cleanName(nameIn.value) || NAME_DEF; G.badName = nameBad(heroName); if (G.badName) heroName = NAME_SAFE;   // v19: nome feio vira Maninho
+  store.set(NAME_KEY, heroName);
   nameBox.hidden = true; nameBox.classList.remove('top'); try { nameIn.blur(); } catch (_) {}
   audioInit(); talkNameAnswered();   // v14: o nome é perguntado pelo Merlin, no começo do treino
 }

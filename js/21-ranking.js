@@ -60,14 +60,14 @@ function drawRanking(x, y, w, h, u, opts = {}) {
     const col = me ? '#c8ff5a' : i === 0 ? '#ffcf3a' : i === 1 ? '#d7dde6' : i === 2 ? '#d08a48' : '#e8e2f6';
     const fs = Math.min(16 * u, lh * 0.8);
     uiText((i + 1) + 'º', x + 22 * u, yy, fs, col, 'left', 800, FONT_UI, false);
-    ctx.font = `800 ${fs}px ${FONT_UI}`; let nm = r.name.toUpperCase(); while (ctx.measureText(nm).width > w - 200 * u && nm.length > 3) nm = nm.slice(0, -1);
+    ctx.font = `800 ${fs}px ${FONT_UI}`; let nm = (nameBad(r.name) ? NAME_SAFE : r.name).toUpperCase();   // v19: nomes feios no banco aparecem como Maninho while (ctx.measureText(nm).width > w - 200 * u && nm.length > 3) nm = nm.slice(0, -1);
     uiText(nm, x + 56 * u, yy, fs, col, 'left', 800, FONT_UI, false);
     uiText(fmt(r.best), x + w - 76 * u, yy, fs, col, 'right', 800, FONT_UI, false);
     uiText(r.kmh ? String(Math.round(r.kmh)) : '–', x + w - 20 * u, yy, fs, r.kmh >= 70 ? '#ff9a3c' : col, 'right', 800, FONT_UI, false);
   });
   if (RANK.myPos > max && !mineIn) {
     const r = rows[RANK.myPos - 1], yy = top + max * lh + 4 * u;
-    uiText('…  ' + RANK.myPos + 'º  ' + r.name.toUpperCase(), x + 22 * u, yy, 15 * u, '#c8ff5a', 'left', 800, FONT_UI, false);
+    uiText('…  ' + RANK.myPos + 'º  ' + (nameBad(r.name) ? NAME_SAFE : r.name).toUpperCase(), x + 22 * u, yy, 15 * u, '#c8ff5a', 'left', 800, FONT_UI, false);
     uiText(fmt(r.best), x + w - 76 * u, yy, 15 * u, '#c8ff5a', 'right', 800, FONT_UI, false); uiText(r.kmh ? String(Math.round(r.kmh)) : '–', x + w - 20 * u, yy, 15 * u, '#c8ff5a', 'right', 800, FONT_UI, false);
   }
   if (RANK.sending) uiText('salvando…', x + w / 2, y + h - 12 * u, 12 * u, '#9a93ad', 'center', 600, FONT_UI, false);

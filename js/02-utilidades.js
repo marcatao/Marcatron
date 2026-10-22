@@ -12,7 +12,27 @@ const SCORE_KEY = 'marcatron.pontos.1-1';   // v8.1: melhor pontuação de manob
 // v8: o nome do personagem é perguntado ao abrir o jogo (o último fica salvo no aparelho e vem preenchido)
 const NAME_KEY = 'marcatron.nome', NAME_DEF = 'Gabriel Rock';
 const cleanName = s => String(s || '').replace(/[^\p{L}\p{N} ._'-]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 16);
+// v19: filtro de nomes — palavrões, termos sexuais e pejorativos viram "Maninho". Normaliza acentos, maiúsculas, números no
+// lugar de letras (p0rr4), letras repetidas (puuuta) e letras separadas (p.u.t.a). Raízes casam com o começo de cada palavra
+// (evita "computador" → "puta"); as curtas só valem como palavra inteira (evita "Rolando" → "rola").
+const NAME_SAFE = 'Maninho';
+const NAME_BAD_ROOTS = ['caralh', 'porra', 'buceta', 'bucet', 'xoxot', 'xerec', 'xavasc', 'piroc', 'pirok', 'punhet', 'foder', 'fodid', 'fodas', 'foda', 'fuder', 'fudid',
+  'puta', 'puto', 'putinh', 'putari', 'viado', 'viadinh', 'veado', 'bicha', 'boiola', 'baitola', 'sapatao', 'arromb', 'corno', 'cuzao', 'cuzinh', 'merda', 'bosta',
+  'cacete', 'merd', 'siriric', 'boquet', 'chupa', 'gozad', 'goza', 'tesao', 'tesud', 'safad', 'putaria', 'sexo', 'porn', 'peitud', 'bundud', 'bunda', 'rabud',
+  'idiota', 'imbecil', 'retardad', 'mongol', 'debil', 'otario', 'babaca', 'escrot', 'vagabund', 'piranh', 'vadia', 'macaco', 'crioul', 'negrinh', 'traveco', 'nazi', 'hitler',
+  'fuck', 'shit', 'bitch', 'cock', 'pussy', 'cunt', 'nigg', 'fagg', 'slut', 'whore', 'porno', 'asshole', 'bastard', 'penis', 'vagina'];
+const NAME_BAD_WORDS = ['cu', 'cus', 'pau', 'pica', 'rola', 'pinto', 'rabo', 'bct', 'krl', 'crl', 'fdp', 'pqp', 'vsf', 'tnc', 'vtnc', 'kct', 'tmnc', 'sex', 'sexy', 'nude', 'nudes', 'gozo', 'fag', 'ass', 'dick', 'anus'];
+const badNorm = s => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+  .replace(/[0@4]/g, m => ({ 0: 'o', '@': 'a', 4: 'a' })[m]).replace(/[1!|]/g, 'i').replace(/3/g, 'e').replace(/[5$]/g, 's').replace(/7/g, 't').replace(/9/g, 'g')
+  .replace(/[^a-z ]+/g, ' ').replace(/([a-z])\1+/g, '$1');
+const BAD_ROOTS = NAME_BAD_ROOTS.map(badNorm).map(s => s.trim()), BAD_WORDS = new Set(NAME_BAD_WORDS.map(badNorm));
+function nameBad(name) {
+  const n = badNorm(name), words = n.split(/\s+/).filter(Boolean), glued = words.filter(w => w.length === 1).join('');   // p u t a → "puta"
+  const hit = w => BAD_WORDS.has(w) || BAD_ROOTS.some(r => r.length >= 4 && w.startsWith(r));
+  return words.some(hit) || (glued.length >= 3 && hit(glued)) || BAD_ROOTS.some(r => r.length >= 5 && n.replace(/ /g, '').includes(r));
+}
 let heroName = cleanName(store.get(NAME_KEY)) || NAME_DEF;
+if (nameBad(heroName)) heroName = NAME_SAFE;
 const NAME_UP = () => heroName.toUpperCase();
 function mk(w, h) { const c = document.createElement('canvas'); c.width = Math.max(1, Math.ceil(w)); c.height = Math.max(1, Math.ceil(h)); return c; }
 function rgba(hex, a) { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; }

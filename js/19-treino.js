@@ -49,7 +49,8 @@ function tutPages(step) {
   }
 }
 // v17: a primeira fala de toda partida: sem nome salvo, pergunta o nome; com nome salvo, confirma se é a mesma pessoa
-const whoPage = () => G.newSkater ? ['NOME NOVO POR AQUI? ENTÃO O TREINO É OBRIGATÓRIO!', 'NINGUÉM PATINA NA MINHA CIDADE SEM TREINAR.']
+const BAD_NAME_LINES = ['HMM... ESSE NOME AÍ É COMPLICADO.', 'VOU TE CHAMAR DE MANINHO!'];
+const whoPage = () => G.newSkater ? (G.badName ? [BAD_NAME_LINES[0] + ' VOU TE CHAMAR DE MANINHO!', 'E NOME NOVO POR AQUI = TREINO OBRIGATÓRIO!'] : ['NOME NOVO POR AQUI? ENTÃO O TREINO É OBRIGATÓRIO!', 'NINGUÉM PATINA NA MINHA CIDADE SEM TREINAR.'])
   : store.get(NAME_KEY)
   ? () => ({ ask: 'who', lines: ['E AÍ! É VOCÊ MESMO, ' + NAME_UP() + '?', 'OU QUER TROCAR O NOME?'] })
   : { ask: 'name', lines: ['E AÍ, PATINADOR! CHEGA MAIS.', 'ANTES DE TUDO: QUAL É O SEU NOME?'] };
@@ -95,8 +96,9 @@ function talkNameAnswered() {   // o jogador digitou o nome (ver 04-entrada.js)
   talk.asking = false; talk.page.ask = null; sfx('combo', { vol: 0.5 });
   // v18: trocou para um nome que ainda não está no ranking (fora do treino): volta o tutorial obrigatório, do começo
   if (tut && !tut.active && !RANK.list.some(r => rankKey(r.name) === rankKey(heroName))) {
-    talk = null; store.set(TUT_KEY, ''); G.newSkater = true; startGame(); G.newSkater = false; return;
+    talk = null; store.set(TUT_KEY, ''); G.newSkater = true; startGame(); G.newSkater = false; G.badName = false; return;
   }
+  if (G.badName) { talk.pages.splice(talk.i + 1, 0, BAD_NAME_LINES); G.badName = false; }   // v19: nome feio
   talkNext();
 }
 function talkWho(yes) {   // respondeu "é você mesmo?" (ver 04-entrada.js)
