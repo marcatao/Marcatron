@@ -49,7 +49,8 @@ function tutPages(step) {
   }
 }
 // v17: a primeira fala de toda partida: sem nome salvo, pergunta o nome; com nome salvo, confirma se é a mesma pessoa
-const whoPage = () => store.get(NAME_KEY)
+const whoPage = () => G.newSkater ? ['NOME NOVO POR AQUI? ENTÃO O TREINO É OBRIGATÓRIO!', 'NINGUÉM PATINA NA MINHA CIDADE SEM TREINAR.']
+  : store.get(NAME_KEY)
   ? () => ({ ask: 'who', lines: ['E AÍ! É VOCÊ MESMO, ' + NAME_UP() + '?', 'OU QUER TROCAR O NOME?'] })
   : { ask: 'name', lines: ['E AÍ, PATINADOR! CHEGA MAIS.', 'ANTES DE TUDO: QUAL É O SEU NOME?'] };
 const TUT_ST = [null, 's1', 's2', 's3', 's4', 's5', 's6', 's7'];
@@ -91,7 +92,12 @@ function talkNext() {
 }
 function talkNameAnswered() {   // o jogador digitou o nome (ver 04-entrada.js)
   if (!talk || talk.asking !== 'name') return;
-  talk.asking = false; talk.page.ask = null; sfx('combo', { vol: 0.5 }); talkNext();
+  talk.asking = false; talk.page.ask = null; sfx('combo', { vol: 0.5 });
+  // v18: trocou para um nome que ainda não está no ranking (fora do treino): volta o tutorial obrigatório, do começo
+  if (tut && !tut.active && !RANK.list.some(r => rankKey(r.name) === rankKey(heroName))) {
+    talk = null; store.set(TUT_KEY, ''); G.newSkater = true; startGame(); G.newSkater = false; return;
+  }
+  talkNext();
 }
 function talkWho(yes) {   // respondeu "é você mesmo?" (ver 04-entrada.js)
   if (!talk || talk.asking !== 'who') return;
