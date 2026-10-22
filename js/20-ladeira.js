@@ -7,6 +7,9 @@
 let traffic = [], loops = [], ladM = null;
 const LT = { piano: 1.0, merlin: 5.5, tilt0: 9, tilt1: 14, tilt2: 141, tilt3: 148, stop: 141.5, loopC: 68, loopR: 34 };   // v12: 150 colunas, mais íngreme
 const TILT_A = 0.13;      // inclinação máxima da câmera (rad, ~7,5°)
+// v16: velocidade na ladeira. Segurando para frente, h.lspd sobe de 0 a 1 em ~15 s (LAD_ACC por quadro; só chega ao topo no fim da descida) e a velocidade-alvo vai
+// de LAD_V0 a LAD_V1; soltando, cai em ~5 s (LAD_DEC). O velocímetro mostra |v| x KMH: LAD_V1 = 3,79 → ~76 km/h.
+const LAD_ACC = 1 / 760, LAD_DEC = 0.0035, LAD_V0 = 2.0, LAD_V1 = 3.79, KMH = 20, SPEEDO_MAX = 75;
 const LAD_ZOOM = 0.52;    // v13: na ladeira a câmera abre bem (personagem menor, campo de visão ~2x) para dar tempo de reagir
 const LAD_X = c => (LAD.c0 + c) * TS;
 // v13: tamanhos reais (13 unidades por metro; o herói tem ~1,6 m) e todos mais devagar
@@ -26,8 +29,9 @@ function makeLadeira(coin) {
   // corrimão com loop: entra pela esquerda, dá a volta completa e sai pela direita
   const cx = LAD_X(LT.loopC), y = 176, R = LT.loopR;
   // a entrada nasce rente ao chão e sobe: quem vem rolando já engata o grind (dá para fugir pulando)
-  makeRail(LAD_X(LT.loopC - 10), 191, LAD_X(LT.loopC - 6), y);
+  const up = makeRail(LAD_X(LT.loopC - 10), 191, LAD_X(LT.loopC - 6), y);
   const entry = makeRail(LAD_X(LT.loopC - 6), y, cx, y), exit = makeRail(cx, y, LAD_X(LT.loopC + 5), y);
+  up.keep = entry.keep = true;   // v16: a subida até o loop não freia (senão o herói cai antes de entrar)
   const L = { isLoop: true, cx, cy: y - R, R, entry, exit, glow: 0 };
   entry.next = L; loops.push(L);
   for (let k = 0; k < 10; k++) { const a = Math.PI * 0.35 + k * Math.PI * 0.14, c = (cx + Math.sin(a) * (R - 9)) / TS - 0.5, r = (y - R + Math.cos(a) * (R - 9)) / TS - 0.5; coin(c, r); }
@@ -41,7 +45,7 @@ function resetLadeira() {   // renasceu: o trânsito que ainda está à frente v
 }
 // ---------- loop do corrimão (o herói segue o círculo; a gravidade freia na subida e devolve na descida)
 function enterLoop(h, L, over) {
-  h.rail = null; h.loop = L; h.lt = Math.max(0, over) / L.R; h.rs = Math.max(Math.abs(h.rs), 2.7); h.face = 1;
+  h.rail = null; h.loop = L; h.lt = Math.max(0, over) / L.R; h.loopVin = Math.abs(h.rs); h.rs = Math.max(Math.abs(h.rs), 2.7); h.face = 1;
   sfx('air', { vol: 0.6, rate: 0.9, pan: panOf(L.cx) }); sfx('grind_start', { vol: 0.6, rate: 1.2, pan: panOf(L.cx) });
 }
 function loopStep(h) {
@@ -50,6 +54,7 @@ function loopStep(h) {
   h.lt += h.rs / L.R;
   if (h.lt >= Math.PI * 2) {
     const over = (h.lt - Math.PI * 2) * L.R;
+    h.rs = Math.max(h.loopVin || 0, 2.2);   // sai com a mesma velocidade com que entrou
     h.loop = null; h.lt = 0; h.ang = 0; h.rail = L.exit; h.x = L.cx + over - h.w / 2; h.y = L.exit.y0 - h.h; h.vx = h.rs; h.vy = 0; h.onGround = true;
     stats.score += 300; pop(L.cx, L.cy - L.R - 8, '+300 LOOP!', '#ffd23f', true); sfx('combo', { vol: 0.75 }); sfx('cheer', { vol: 0.45 }); G.shake = Math.max(G.shake, 4);
     noteBurst(L.cx, L.cy - L.R, 12, 2);
@@ -78,6 +83,12 @@ function updateSpeedFx() {
 }
 function updateLadeira() {
   updateSpeedFx();
+  { // velocímetro: velocidade atual (suavizada) e a máxima atingida nas ladeiras
+    const h = hero, v = h.rail || h.loop || h.ramp ? Math.abs(h.rs) : Math.abs(h.vx), on = G.state === 'play' && slopeK(h.x + h.w / 2) > 0.02;
+    G.kmh = (G.kmh || 0) + (v * KMH - (G.kmh || 0)) * 0.2;
+    if (on && !h.dead && !h.loop) G.kmhMax = Math.max(G.kmhMax || 0, v * KMH);   // pela velocidade real; o loop não conta
+    G.speedoA = (G.speedoA || 0) + ((on ? 1 : 0) - (G.speedoA || 0)) * 0.08;
+  }
   if (!ladM) return;
   G.tilt = (G.tilt || 0) + (slopeK(cam.x + viewW() / 2) - (G.tilt || 0)) * 0.05;
   const m = ladM, h = hero, playing = G.state === 'play';
@@ -466,4 +477,36 @@ function drawTraffic(g, tr, t) {
     rr(g, mx + 3, b - 10, 4, 5, 1); fillStroke(g, '#2a9d8f', 0.4); g.fillStyle = '#7ccf5a'; ell(g, mx + 4.4, b - 10.6, 1.2, 1); g.fill();   // sacola com verdura
   }
   g.restore();
+}
+
+// ---------- velocímetro (v16): aparece nas ladeiras, de 0 a 75 km/h, com a máxima atingida
+function drawSpeedo(u) {
+  const a = G.speedoA || 0; if (a < 0.02 || G.state === 'title') return;
+  const R = 76 * u, cx = W - R - 34 * u, cy = H * 0.5, v = clamp(G.kmh || 0, 0, 79), a0 = Math.PI * 0.75, sw = Math.PI * 1.5, ang = k => a0 + sw * clamp(k / SPEEDO_MAX, 0, 1.05);
+  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = a;
+  ell(ctx, cx, cy, R + 10 * u, R + 10 * u); ctx.fillStyle = 'rgba(14,10,24,0.88)'; ctx.fill(); ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 2 * u; ctx.stroke();
+  // faixa colorida (verde → amarelo → vermelho a partir de 60) e o trecho já percorrido
+  ctx.lineCap = 'butt'; ctx.lineWidth = 9 * u;
+  ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.beginPath(); ctx.arc(cx, cy, R - 6 * u, a0, a0 + sw); ctx.stroke();
+  const gr = ctx.createLinearGradient(cx - R, 0, cx + R, 0); gr.addColorStop(0, '#b6ff3b'); gr.addColorStop(0.6, '#ffd23f'); gr.addColorStop(1, '#ff3b4a');
+  ctx.strokeStyle = gr; ctx.beginPath(); ctx.arc(cx, cy, R - 6 * u, a0, ang(v)); ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,59,74,0.55)'; ctx.lineWidth = 3 * u; ctx.beginPath(); ctx.arc(cx, cy, R + 2 * u, ang(60), ang(75)); ctx.stroke();
+  // marcas a cada 5 km/h, números a cada 15
+  for (let k = 0; k <= 75; k += 5) {
+    const t = ang(k), big = k % 15 === 0, r0 = R - (big ? 20 : 15) * u, r1 = R - 12 * u;
+    ctx.strokeStyle = k >= 60 ? '#ff6b76' : '#e8e2f6'; ctx.lineWidth = (big ? 2.4 : 1.2) * u;
+    ctx.beginPath(); ctx.moveTo(cx + Math.cos(t) * r0, cy + Math.sin(t) * r0); ctx.lineTo(cx + Math.cos(t) * r1, cy + Math.sin(t) * r1); ctx.stroke();
+    if (big) uiText(String(k), cx + Math.cos(t) * (R - 32 * u), cy + Math.sin(t) * (R - 32 * u), 12 * u, k >= 60 ? '#ff6b76' : '#cfc8de', 'center', 800, FONT_UI, false);
+  }
+  // marca da máxima e o ponteiro
+  if ((G.kmhMax || 0) > 1) { const t = ang(G.kmhMax); ctx.fillStyle = '#7fd4ff'; ctx.beginPath(); ctx.arc(cx + Math.cos(t) * (R - 6 * u), cy + Math.sin(t) * (R - 6 * u), 4 * u, 0, Math.PI * 2); ctx.fill(); }
+  const t = ang(v), shake = v > 70 ? (Math.random() - 0.5) * 0.03 : 0;
+  ctx.strokeStyle = '#ff7a1a'; ctx.lineWidth = 3.6 * u; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(cx - Math.cos(t + shake) * 10 * u, cy - Math.sin(t + shake) * 10 * u); ctx.lineTo(cx + Math.cos(t + shake) * (R - 16 * u), cy + Math.sin(t + shake) * (R - 16 * u)); ctx.stroke();
+  ell(ctx, cx, cy, 7 * u, 7 * u); ctx.fillStyle = '#ff7a1a'; ctx.fill(); ctx.strokeStyle = '#140f1f'; ctx.lineWidth = 2 * u; ctx.stroke();
+  if (v > 70) glow(ctx, cx, cy, R * 0.9, '#ff3b4a', 0.25 + 0.15 * Math.sin(G.t * 20));
+  uiText(String(Math.round(v)), cx, cy + R * 0.42, 30 * u, v >= 60 ? '#ff9a3c' : '#ffffff', 'center', 800, FONT_UI);
+  uiText('KM/H', cx, cy + R * 0.42 + 20 * u, 11 * u, '#9a93ad', 'center', 800, FONT_UI, false);
+  uiText('MÁX ' + Math.round(G.kmhMax || 0) + ' KM/H', cx, cy + R + 24 * u, 15 * u, '#7fd4ff', 'center', 800, FONT_UI);
+  uiText('SEGURE → PARA ACELERAR', cx, cy - R - 20 * u, 13 * u, '#c8ff5a', 'center', 800, FONT_UI);
+  ctx.restore();
 }

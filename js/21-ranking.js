@@ -25,16 +25,19 @@ function rankLocalSave(list) { store.set(RANK_LOCAL_KEY, JSON.stringify(rankClea
 function rankFindMine() { RANK.myPos = RANK.mine ? RANK.list.findIndex(r => rankKey(r.name) === RANK.mine) + 1 : 0; }
 // chamado ao concluir a fase: grava o tempo se for o melhor desse nome
 async function rankSubmit(name, t, extra = {}) {
-  const key = rankKey(name), row = { name: String(name).slice(0, 16), best: Math.round(t * 1000) / 1000, at: new Date().toISOString(), score: extra.score || 0, medal: extra.medal || '' };
+  const key = rankKey(name), row = { name: String(name).slice(0, 16), best: Math.round(t * 1000) / 1000, kmh: extra.kmh || 0, at: new Date().toISOString(), score: extra.score || 0, medal: extra.medal || '' };
+  // v16: um documento por nome guarda o melhor tempo E a maior velocidade na ladeira (podem ser de corridas diferentes)
+  const merge = prev => prev && typeof prev.best === 'number' ? { ...prev, ...(row.best < prev.best ? row : {}), best: Math.min(prev.best, row.best), kmh: Math.max(prev.kmh || 0, row.kmh) } : row;
   RANK.mine = key; RANK.failed = false;
   const loc = rankLocalLoad(), i = loc.findIndex(r => r && rankKey(r.name) === key);
-  if (i < 0) loc.push(row); else if (row.best < loc[i].best) loc[i] = row;
+  if (i < 0) loc.push(row); else loc[i] = merge(loc[i]);
   rankLocalSave(loc);
   if (!RANK.shared || !RANK.db || !RANK.canWrite) { if (!RANK.shared) RANK.list = rankClean(loc); rankFindMine(); return; }
   RANK.sending = true;
   try {
     const ref = RANK.db.collection('ranking').doc(key), cur = await ref.get(), prev = cur.exists ? cur.data() : null;
-    if (!prev || typeof prev.best !== 'number' || row.best < prev.best) await ref.set(row);
+    const next = merge(prev);
+    if (!prev || next.best !== prev.best || next.kmh !== (prev.kmh || 0)) await ref.set(next);
   } catch (e) {
     RANK.failed = true;
     if (e && e.code === 'invalid_argument') RANK.canWrite = false;   // sem permissão de gravar: fica só no aparelho
@@ -47,7 +50,8 @@ function drawRanking(x, y, w, h, u, opts = {}) {
   rr(ctx, x, y, w, h, 16 * u); ctx.fillStyle = 'rgba(20,14,32,0.94)'; ctx.fill(); ctx.strokeStyle = 'rgba(255,210,63,0.75)'; ctx.lineWidth = 2.5 * u; ctx.stroke();
   uiText(opts.title || 'RANKING', x + w / 2, y + 30 * u, 26 * u, '#ffd23f', 'center', 400, FONT_HAND, false);
   uiText(RANK.shared ? (RANK.canWrite ? 'MELHOR TEMPO DE CADA PATINADOR' : 'SEU TEMPO FICOU SÓ NESTE APARELHO') : 'GUARDADO NESTE APARELHO', x + w / 2, y + 54 * u, 12 * u, '#9a93ad', 'center', 800, FONT_UI, false);
-  const top = y + 78 * u, lh = Math.min(26 * u, (h - 96 * u) / max);
+  const top = y + 84 * u, lh = Math.min(26 * u, (h - 102 * u) / max);
+  uiText('TEMPO', x + w - 76 * u, y + 68 * u, 10 * u, '#8a83a0', 'right', 800, FONT_UI, false); uiText('KM/H', x + w - 20 * u, y + 68 * u, 10 * u, '#8a83a0', 'right', 800, FONT_UI, false);
   if (!rows.length) { uiText('NINGUÉM AINDA. SEJA O PRIMEIRO!', x + w / 2, top + 20 * u, 15 * u, '#cfc8de', 'center', 800, FONT_UI, false); return; }
   const show = rows.slice(0, max), mineIn = RANK.myPos > 0 && RANK.myPos <= max;
   show.forEach((r, i) => {
@@ -56,14 +60,15 @@ function drawRanking(x, y, w, h, u, opts = {}) {
     const col = me ? '#c8ff5a' : i === 0 ? '#ffcf3a' : i === 1 ? '#d7dde6' : i === 2 ? '#d08a48' : '#e8e2f6';
     const fs = Math.min(16 * u, lh * 0.8);
     uiText((i + 1) + 'º', x + 22 * u, yy, fs, col, 'left', 800, FONT_UI, false);
-    ctx.font = `800 ${fs}px ${FONT_UI}`; let nm = r.name.toUpperCase(); while (ctx.measureText(nm).width > w - 150 * u && nm.length > 3) nm = nm.slice(0, -1);
+    ctx.font = `800 ${fs}px ${FONT_UI}`; let nm = r.name.toUpperCase(); while (ctx.measureText(nm).width > w - 200 * u && nm.length > 3) nm = nm.slice(0, -1);
     uiText(nm, x + 56 * u, yy, fs, col, 'left', 800, FONT_UI, false);
-    uiText(fmt(r.best), x + w - 20 * u, yy, fs, col, 'right', 800, FONT_UI, false);
+    uiText(fmt(r.best), x + w - 76 * u, yy, fs, col, 'right', 800, FONT_UI, false);
+    uiText(r.kmh ? String(Math.round(r.kmh)) : '–', x + w - 20 * u, yy, fs, r.kmh >= 70 ? '#ff9a3c' : col, 'right', 800, FONT_UI, false);
   });
   if (RANK.myPos > max && !mineIn) {
     const r = rows[RANK.myPos - 1], yy = top + max * lh + 4 * u;
     uiText('…  ' + RANK.myPos + 'º  ' + r.name.toUpperCase(), x + 22 * u, yy, 15 * u, '#c8ff5a', 'left', 800, FONT_UI, false);
-    uiText(fmt(r.best), x + w - 20 * u, yy, 15 * u, '#c8ff5a', 'right', 800, FONT_UI, false);
+    uiText(fmt(r.best), x + w - 76 * u, yy, 15 * u, '#c8ff5a', 'right', 800, FONT_UI, false); uiText(r.kmh ? String(Math.round(r.kmh)) : '–', x + w - 20 * u, yy, 15 * u, '#c8ff5a', 'right', 800, FONT_UI, false);
   }
   if (RANK.sending) uiText('salvando…', x + w / 2, y + h - 12 * u, 12 * u, '#9a93ad', 'center', 600, FONT_UI, false);
   else if (RANK.failed) uiText('não deu para salvar no ranking agora', x + w / 2, y + h - 12 * u, 12 * u, '#ff7a1a', 'center', 600, FONT_UI, false);

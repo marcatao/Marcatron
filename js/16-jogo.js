@@ -20,7 +20,7 @@ function resetHero(x) {
   hero = { x, y: GROUND_Y - 14, w: 12, h: 14, vx: 0, vy: 0, form: 0, tfFrom: 0, tfT: 1, face: 1, onGround: true, coyote: 0, jbuf: 0, jumping: false,
     inv: 0, strum: 0, cd: 0, phase: 0, dead: false, deadT: 0, combo: 0,
     sq: 1, sqv: 0, duck: 1, hairX: 0, hairY: 0, hvx: 0, hvy: 0, badge: 0, badgeV: 0, scarf: 0, blink: 0, blinkT: 120, look: 0, mouth: 0, idleT: 0,
-    ramp: null, rail: null, loop: null, lt: 0, slope: 0, rs: 0, railCd: 0, slideT: 0, slideCd: 0, slideBuf: 0, stride: 0, pushing: false, wheel: 0, ang: 0, angT: 0, airT: 0, trick: false, grindT: 0,
+    ramp: null, rail: null, loop: null, lt: 0, slope: 0, lspd: 0, rs: 0, railCd: 0, slideT: 0, slideCd: 0, slideBuf: 0, stride: 0, pushing: false, wheel: 0, ang: 0, angT: 0, airT: 0, trick: false, grindT: 0,
     takeoff: GROUND_Y, bigAir: false, grindRun: 0, man: null, manDone: [], manPts: 0, lastTrick: -1, stunT: 0, airPrev: false, happyT: 0, cheerT: 0 };
 }
 function setForm(f, hurtFlag) {
@@ -61,7 +61,7 @@ const VOICE = { dog: ['bark', 0.55, 1.25], cat: ['meow', 0.75, 1.12], pigeon: ['
 function hurt() {
   if (hero.inv > 0 || hero.dead || G.state !== 'play' || G.cutscene || talk) return;
   if (window.__god) { G.godHits = (G.godHits || 0) + 1; return; }   // gancho de teste
-  AU.hurtT = 1;
+  AU.hurtT = 1; hero.lspd *= 0.4;   // v16: tombo na ladeira perde boa parte do embalo
   if (hero.form > 0) { setForm(0, true); hero.inv = 110; sfx('hurt'); G.shake = 8; pop(hero.x + hero.w / 2, hero.y - 8, 'AI!', '#ff3b5c'); }
   else kill();
 }
@@ -197,7 +197,8 @@ function win() {
   const sPrev = parseInt(store.get(SCORE_KEY)) || 0, sNew = stats.score > sPrev;
   if (sNew) store.set(SCORE_KEY, String(stats.score));
   G.result = { t, isNew, prev, et, medal: t <= MEDALS[0] ? 'OURO' : t <= MEDALS[1] ? 'PRATA' : t <= MEDALS[2] ? 'BRONZE' : null, score: stats.score, scoreNew: sNew && stats.score > 0, scorePrev: sPrev };
-  rankSubmit(heroName, t, { score: stats.score, medal: G.result.medal });   // v14: ranking por nome (ver 21-ranking.js)
+  G.result.kmh = Math.round(G.kmhMax || 0);
+  rankSubmit(heroName, t, { score: stats.score, medal: G.result.medal, kmh: G.result.kmh });   // v14: ranking por nome (ver 21-ranking.js)
 }
 
 // ---------- física
@@ -240,7 +241,11 @@ function updateHero() {
   if (h.stunT > 0) h.stunT--;
   const dirIn = h.stunT > 0 ? 0 : playing && !auto ? (input.right ? 1 : 0) - (input.left ? 1 : 0) : (h.x + h.w / 2 < (GOAL_C + 3) * TS - 6 ? 1 : 0);
   h.slope = playing && !auto && !talk ? slopeK(h.x + h.w / 2) : 0;   // v11: na ladeira o embalo vem sozinho e o teto sobe
-  const lim = (playing && !auto ? F.max : auto ? 1.7 : 1.1) * (1 + 0.22 * h.slope);   // v13: na ladeira o embalo é menor (o jogo fica mais calmo; a sensação de velocidade vem dos efeitos)
+  // v16: na ladeira, segurar para frente acelera devagar (h.lspd vai de 0 a 1) e soltar faz a velocidade cair aos poucos;
+  // segurando a descida inteira chega a ~75 km/h no velocímetro (ver LAD_V0/LAD_V1 e KMH em 20-ladeira.js)
+  if (h.slope > 0 && !h.dead) h.lspd = dirIn > 0 ? Math.min(1, h.lspd + LAD_ACC * h.slope) : Math.max(0, h.lspd - LAD_DEC);
+  else if (h.lspd > 0) h.lspd = Math.max(0, h.lspd - LAD_DEC * 2);
+  const lim = h.slope > 0 ? lerp(playing && !auto ? F.max : 1.1, LAD_V0 + (LAD_V1 - LAD_V0) * h.lspd, h.slope) : (playing && !auto ? F.max : auto ? 1.7 : 1.1);
   if (G.skidCd > 0) G.skidCd--;
   if (h.cd > 0) h.cd--; if (h.strum > 0) h.strum--; if (h.inv > 0) h.inv--;
   if (h.slideCd > 0) h.slideCd--; if (h.railCd > 0) h.railCd--;
@@ -332,7 +337,7 @@ function freeStep(h, F, dirIn, lim, playing, auto) {
     }
     h.face = dirIn;
   } else h.vx = approach(h.vx, 0, h.onGround ? (playing && !auto ? F.coast : 0.08) : 0.006);
-  if (h.slope > 0 && h.onGround && h.slideT === 0 && dirIn >= 0) { h.vx = Math.min(lim, h.vx + 0.04 * h.slope); if (dirIn === 0) h.face = 1; }   // descida: a gravidade empurra
+  if (h.slope > 0 && h.onGround && h.slideT === 0 && dirIn >= 0) { h.vx = Math.min(lim, h.vx + 0.03 * h.slope); if (dirIn === 0) h.face = 1; }   // descida: a gravidade empurra
   if (Math.abs(h.vx) > lim && h.onGround && h.slideT === 0) h.vx = Math.sign(h.vx) * Math.max(lim, Math.abs(h.vx) - 0.035);   // embalo extra das rampas some aos poucos
   if (h.pushing) { const p0 = h.stride; h.stride += 0.075 + Math.abs(h.vx) * 0.02; if (Math.floor(p0 / Math.PI) !== Math.floor(h.stride / Math.PI)) sfx('push', { vol: 0.3, vary: 0.08, pan: panOf(h.x) }); }
   if (h.jbuf > 0 && (h.onGround || h.coyote > 0)) doJump(h, F, h.vx, 0);
@@ -455,7 +460,7 @@ function railAttach(h, prevFeet) {
 }
 function railStep(h, F) {
   const r = h.rail; h.grindT++;
-  h.rs = clamp(approach(h.rs + 0.2 * r.ty, 0, 0.0035), -4.69, 4.69);   // corrimão descendo acelera (v10: teto mais 7% menor)
+  h.rs = r.keep ? Math.max(Math.abs(h.rs), 2.4) * (Math.sign(h.rs) || 1) : clamp(approach(h.rs + 0.2 * r.ty, 0, 0.0035), -4.69, 4.69);   // corrimão descendo acelera (v10: teto mais 7% menor)
   if (Math.abs(h.rs) > 0.2) h.face = Math.sign(h.rs);
   h.pushing = false;
   if (h.jbuf > 0) { doJump(h, F, h.rs * r.tx, h.rs * r.ty); return; }
@@ -620,7 +625,7 @@ function updateFx() {
 function startGame() {
   audioInit(); buildLevel(); computeRuns(); resetHero(cp.x); G.timer = { t: 0, on: false }; colorX = colorTarget = colMap(38) * TS;   // v8: a pista do Merlin é colorida
   for (const b of BILLBOARDS) { b.on = false; b.t = 0; }
-  G.state = 'play'; G.lead = 0; G.result = null; G.deathMsg = 0; G.shake = 0; G.hintT = 0; G.ufoTimer = 1500; G.coinCombo = 0; G.alarmT = 0; G.alarmTip = false; G.cutscene = false; G.timeFrozen = false; G.pipeT = 0; G.pipeTip = false; G.slomo = 0;
+  G.state = 'play'; G.lead = 0; G.result = null; G.deathMsg = 0; G.shake = 0; G.hintT = 0; G.ufoTimer = 1500; G.coinCombo = 0; G.alarmT = 0; G.alarmTip = false; G.cutscene = false; G.timeFrozen = false; G.pipeT = 0; G.pipeTip = false; G.slomo = 0; G.kmh = 0; G.kmhMax = 0; G.speedoA = 0;
   AU.danger = 0; AU.duck = 0; AU.crowd = 0.1; cam.zoom = 1; updateCamera(true); musicStart(true); loadBest();
 }
 function update() {

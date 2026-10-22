@@ -263,7 +263,7 @@ function drawHUD() {
   uiText(fmt(G.timer.t), W - pad, pad + 16 * u, 34 * u, G.timer.on ? '#ffffff' : '#cfc8de', 'right');
   uiText('REC ' + fmt(G.best), W - pad, pad + 44 * u, 16 * u, '#ffd23f', 'right', 600);
   drawVU(W - pad - 46 * u, pad + 96 * u, 34 * u, AU.danger);
-  drawBossHUD(u, pad); drawBossCard(u); drawTutorialHUD(u); drawTalkBox(u);
+  drawBossHUD(u, pad); drawBossCard(u); drawTutorialHUD(u); drawSpeedo(u); drawTalkBox(u);
   if (G.state === 'play' && !G.timer.on && !G.timeFrozen && !hero.dead && !(tut && (tut.active || (tut.doneT != null && tut.doneT < 150))) && (G.frame >> 5) % 2 === 0) uiText('O TEMPO COMEÇA QUANDO VOCÊ SE MEXER', W / 2, H * 0.2, 20 * u, '#ffffff', 'center');
   if (G.state === 'play' && G.hintT < 600 && !(tut && tut.active)) {
     ctx.globalAlpha = clamp((600 - G.hintT) / 90, 0, 1) * 0.92;
@@ -354,6 +354,7 @@ function drawResults() {
   uiText(boss && boss.freed ? 'PAREDÃO LIBERTADO' : 'PAREDÃO DE PÉ', c1, sy + 56 * u, 19 * u, boss && boss.freed ? '#b6ff3b' : '#ff3b5c', 'left', 600);
   uiText('PONTOS ' + R.score, c1, sy + 90 * u, 22 * u, '#ffd23f', 'left', 800);
   uiText('MANOBRAS ' + stats.tricks + (stats.bestCombo > 1 ? ' · COMBO x' + stats.bestCombo : ''), c2, sy + 90 * u, 19 * u, '#7fd4ff', 'left', 600);
+  uiText('LADEIRA: ' + (R.kmh || 0) + ' KM/H MÁX', c2, sy + 114 * u, 17 * u, '#ff9a3c', 'left', 800);   // v16: velocidade máxima na ladeira
   if (R.scoreNew) { if ((G.frame >> 4) % 2 === 0) uiText('NOVO RECORDE DE PONTOS!', c1, sy + 114 * u, 15 * u, '#ffd23f', 'left', 800); }
   else if (R.scorePrev > 0) uiText('MELHOR ' + R.scorePrev, c1, sy + 114 * u, 15 * u, '#cfc8de', 'left', 600);
   if (G.resT > 50 && (G.frame >> 5) % 2 === 0) uiText(touchUI ? 'TOQUE PARA TOCAR DE NOVO' : 'ENTER: TOCAR DE NOVO', cx, py + ph - 24 * u, 20 * u, '#ffffff', 'center', 800);
