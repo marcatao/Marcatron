@@ -15,7 +15,8 @@ window.addEventListener('keydown', e => {
   if (e.code === 'KeyP' || e.code === 'Escape') togglePause();
   if (e.code === 'KeyM') setMuted(!AU.muted);
   if (e.code === 'KeyF') toggleFull();
-  if (e.code === 'KeyR' && (G.state === 'play' || G.state === 'paused')) startGame();
+  if (e.code === 'KeyR' && (G.state === 'play' || G.state === 'paused') && !talk) startGame();
+  if (e.code === 'KeyN' && G.state === 'title') { store.set(NAME_KEY, ''); heroName = NAME_DEF; G.nameReset = 90; sfx('click'); }   // v14: trocar de patinador (o Merlin pergunta de novo)
 });
 window.addEventListener('keyup', e => { const k = KEYMAP[e.code]; if (k) keys[k] = false; });
 window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; touchDir = 0; touchJump = false; });
@@ -46,7 +47,7 @@ function askName() {
 function confirmName() {
   heroName = cleanName(nameIn.value) || NAME_DEF; store.set(NAME_KEY, heroName);
   nameBox.hidden = true; nameBox.classList.remove('top'); try { nameIn.blur(); } catch (_) {}
-  audioInit(); startGame();
+  audioInit(); talkNameAnswered();   // v14: o nome é perguntado pelo Merlin, no começo do treino
 }
 nameBox.addEventListener('submit', e => { e.preventDefault(); confirmName(); });
 nameIn.addEventListener('focus', () => { if (isTouch) nameBox.classList.add('top'); });

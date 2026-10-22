@@ -29,7 +29,7 @@ canvas{display:block;background:#000}
 #rot{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(116px + env(safe-area-inset-bottom,0px));z-index:7;display:flex;gap:12px;align-items:center;font:600 15px/1.35 var(--ui);color:var(--ink);background:rgba(18,14,30,.92);border:1px solid var(--orange);padding:10px 14px;border-radius:10px;width:max-content;max-width:calc(100% - 32px)}
 #rot button{font:800 14px/1 var(--ui);color:#111;background:var(--lime);border:0;border-radius:6px;padding:8px 12px}
 /* v8: nome do personagem, perguntado ao abrir o jogo */
-#nameBox{position:fixed;z-index:8;left:max(16px,6vw);bottom:17%;display:flex;flex-direction:column;gap:8px;padding:12px 14px;max-width:calc(100% - 32px);background:rgba(18,12,30,.9);border:2px solid var(--lime);border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.5)}
+#nameBox{position:fixed;z-index:8;left:50%;top:12%;transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;padding:12px 14px;max-width:calc(100% - 32px);background:rgba(18,12,30,.9);border:2px solid var(--lime);border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.5)}
 #nameBox[hidden]{display:none!important}
 #nameBox.top{top:calc(8px + env(safe-area-inset-top,0px));bottom:auto;left:50%;transform:translateX(-50%)}
 #nameBox label{font:800 15px/1 var(--ui);letter-spacing:.06em;color:var(--lime)}

@@ -10,6 +10,7 @@ const TUT = { s1: 9.5, s2: 13.2, crate0: 15, crate1: 16, s3: 18.8, fence: 22.5, 
   s5: 32.6, pen1: [34.5, 39.5], s6: 41, pen2: [42.5, 47.5], s7: 48.6, rail0: 50.5, rail1: 56, gate: 57.5, sEnd: 56.6 };   // a cancela só abre depois da última fala
 const TUT_STEPS = ['PATINAR', 'PULAR', 'SLIDE', 'MANOBRA', 'RESGATE 1', 'RESGATE 2', 'CORRIMÃO'];
 const TUT_N = TUT_STEPS.length;
+const TUT_WAIT = 720;   // quadros sem completar a lição até o Merlin vir repetir (12 s)
 let tut = null;
 function makeTutorial(rail, dog, pigeon) {
   const first = store.get(TUT_KEY) !== '1';
@@ -17,7 +18,7 @@ function makeTutorial(rail, dog, pigeon) {
     first, active: first, step: first ? 1 : TUT_N + 1, t: 0, stepT: 0, rail, dog, pigeon, tricks0: 0,
     fence: { x: TUT.fence * TS, on: first, off: first ? 0 : 1 },
     gate: { x: TUT.gate * TS, pass: !first, open: first ? 0 : 1 },
-    pending: null, bump: null, passed: false, doneT: null, endTalked: false,
+    pending: null, bump: null, passed: false, doneT: null, endTalked: false, waitT: 0, visitX: null, repeatN: 0,
     m: { x: TUT.s1 * TS, y: GROUND_Y, vx: 0, vy: 0, face: -1, state: 'ground', target: null, next: null, stride: 0, wheel: 0, t: 0, cheerT: 0, talk: 0, talkT: 0, blinkT: 120, blink: 0, hairDX: 0, sparkT: 0 },
   };
   tut.pending = tutPages(tut.step);
@@ -28,10 +29,12 @@ function tutPages(step) {
   const k = KEYS(), n = NAME_UP();
   switch (step) {
     case 1: return [
-      ['FALA, ' + n + '! EU SOU O MERLIN,', 'PROFESSOR DE PATINS AQUI DO PAÇO.'],
+      { ask: 'name', lines: ['E AÍ, PATINADOR! CHEGA MAIS.', 'ANTES DE TUDO: QUAL É O SEU NOME?'] },
+      () => ['OLÁ, ' + NAME_UP() + '! EU SOU O MERLIN,', 'PROFESSOR DE PATINS AQUI DO PAÇO.'],
       ['PRESTA ATENÇÃO: A IA DOMINOU O MUNDO.', 'ELA PLUGOU UM CHIP EM CADA SER VIVO.'],
       ['GENTE E BICHO VIRARAM ROBÔ: OBEDECEM', 'SEM PENSAR, SEM MÚSICA, SEM ALEGRIA.'],
       ['A NOSSA MISSÃO É SALVAR OS HUMANOS', 'E OS ANIMAIS. MAS ANTES: TREINO!'],
+      ['ISTO AQUI É O TUTORIAL: SÃO 7 LIÇÕES', 'RAPIDINHAS. O TEMPO SÓ CONTA DEPOIS DELAS.'],
       ['SEGURA ' + k.right + ' PRA REMAR', 'E VEM ATÉ MIM!']];
     case 2: return [['ISSO! TÁ PATINANDO!', 'AGORA O PULO: PASSA POR CIMA DAS CAIXAS.', 'SEGURA ' + k.jump + ' PRA PULAR MAIS ALTO.']];
     case 3: return [['BOA! VOOU ALTO!', 'ESSA CERCA DA IA SÓ DESLIGA COM FAÍSCA.'], ['CHEGA PERTO DELA E DÁ UM', 'POWERSLIDE: ' + k.act + '!']];
@@ -41,14 +44,22 @@ function tutPages(step) {
     case 7: return [['VIU SÓ? MAIS UM LIVRE!'], ['É ASSIM QUE A GENTE SALVA O MUNDO:', 'DESLIGANDO A IA DOS SERES VIVOS.'], ['POWERSLIDE OU PULO NA CABEÇA: CADA UM QUE', 'VOCÊ DESPERTA VOLTA A SENTIR A MÚSICA.'], ['ÚLTIMA LIÇÃO: O CORRIMÃO.', 'PULA EM CIMA DELE E DESLIZA ATÉ O FIM!']];
     default: return tut && tut.first
       ? [['MANDOU BEM, ' + n + '! TREINO COMPLETO.'], ['AGORA É COM VOCÊ: LIBERTA A CIDADE', 'E DESLIGA A IA DE TODO MUNDO!'], ['DICA: NO AR, ' + k.act + ' FAZ MANOBRA', 'E DÁ PONTOS. CAPRICHA!']]
-      : [['E AÍ, ' + n + '! JÁ SABE O ESQUEMA:', 'A IA DOMINOU O MUNDO E A GENTE DESLIGA ELA.'], ['POWERSLIDE OU PULO NA CABEÇA', 'DESPERTA QUEM TÁ PLUGADO. BORA!']];
+      : [...(store.get(NAME_KEY) ? [] : [{ ask: 'name', lines: ['E AÍ, PATINADOR! ANTES DE TUDO:', 'QUAL É O SEU NOME?'] }]),
+        () => ['OLÁ, ' + NAME_UP() + '! JÁ SABE O ESQUEMA:', 'A IA DOMINOU O MUNDO E A GENTE DESLIGA ELA.'], ['POWERSLIDE OU PULO NA CABEÇA', 'DESPERTA QUEM TÁ PLUGADO. BORA!']];
   }
 }
 const TUT_ST = [null, 's1', 's2', 's3', 's4', 's5', 's6', 's7'];
+// v14: o objetivo de cada lição, sempre visível no topo da tela durante o tutorial
+function tutGoal(step) {
+  const k = touchUI ? { r: 'DIRECIONAL →', j: 'PULAR', a: 'SLIDE' } : { r: '→', j: 'ESPAÇO', a: 'X' };
+  return ['', 'PATINE ATÉ O MERLIN: SEGURE ' + k.r, 'PULE AS CAIXAS: SEGURE ' + k.j + ' PARA PULAR ALTO', 'DÊ UM POWERSLIDE (' + k.a + ') PERTO DA CERCA DA IA',
+    'PULE NA RAMPINHA E APERTE ' + k.a + ' NO AR (MANOBRA)', 'SALVE O CACHORRO COM UM POWERSLIDE (' + k.a + ')', 'SALVE O POMBO PULANDO EM CIMA DELE (' + k.j + ')',
+    'PULE NO CORRIMÃO E DESLIZE ATÉ O FIM'][step] || 'FALE COM O MERLIN PARA TERMINAR O TREINO';
+}
 const tutStation = step => (step <= TUT_N ? TUT[TUT_ST[step]] : tut.first ? TUT.sEnd : TUT.s1) * TS;
 function tutStepDone() {
   const m = tut.m;
-  tut.step++; tut.stepT = 0; tut.bump = null; tut.tricks0 = stats.tricks;
+  tut.step++; tut.stepT = 0; tut.bump = null; tut.tricks0 = stats.tricks; tut.waitT = 0; tut.visitX = null; tut.repeatN = 0;
   m.cheerT = 54; m.next = tutStation(tut.step);
   sfx('combo', { vol: 0.7 }); noteBurst(m.x, m.y - MERLIN_H, 10, 1.6);
   tut.pending = tutPages(tut.step);
@@ -61,21 +72,31 @@ function tutFinish() {
 // ---------- conversa (v11): o balão escreve letra por letra; o herói fica parado até o jogador passar a fala
 let talk = null;
 const TALK_CPS = 1.35;   // letras por quadro
-const talkLen = page => page.join('').replace(/[\[\]]/g, '').length;
+// uma página é uma lista de linhas, uma função que devolve as linhas (montada na hora, ex.: com o nome que acabou de ser
+// digitado) ou {ask: 'name', lines} — a página que pergunta o nome do patinador
+function talkPage(p) { const v = typeof p === 'function' ? p() : p; return Array.isArray(v) ? { lines: v } : v; }
+const talkLen = page => page.lines.join('').replace(/[\[\]]/g, '').length;
 function startTalk(pages, who, onEnd) {
-  talk = { pages, i: 0, n: 0, t: 0, who, onEnd };
+  talk = { pages, i: 0, n: 0, t: 0, who, onEnd, page: talkPage(pages[0]), asking: false };
   hero.jbuf = 0; hero.slideBuf = 0;
   if (who) who.talkT = 30;
+}
+function talkNext() {
+  if (talk.i < talk.pages.length - 1) { talk.i++; talk.n = 0; talk.t = 0; talk.page = talkPage(talk.pages[talk.i]); sfx('click', { vol: 0.5 }); }
+  else { const f = talk.onEnd; talk = null; sfx('click', { vol: 0.5, rate: 1.2 }); if (f) f(); }
+}
+function talkNameAnswered() {   // o jogador digitou o nome (ver 04-entrada.js)
+  if (!talk || !talk.asking) return;
+  talk.asking = false; talk.page.ask = null; sfx('combo', { vol: 0.5 }); talkNext();
 }
 function updateTalk() {
   if (!talk) return false;
   talk.t++;
-  const len = talkLen(talk.pages[talk.i]);
+  const len = talkLen(talk.page);
   if (talk.n < len) { talk.n = Math.min(len, talk.n + TALK_CPS); if (talk.t % 4 === 0) sfx('click', { vol: 0.12, rate: 1.5 + Math.random() * 0.5 }); if (talk.who) talk.who.talkT = 12; }
-  if ((input.jumpP || input.actP || input.startP) && talk.t > 6) {
-    if (talk.n < len) talk.n = len;
-    else if (talk.i < talk.pages.length - 1) { talk.i++; talk.n = 0; talk.t = 0; sfx('click', { vol: 0.5 }); }
-    else { const f = talk.onEnd; talk = null; sfx('click', { vol: 0.5, rate: 1.2 }); if (f) f(); }
+  else if (talk.page.ask && !talk.asking) { talk.asking = true; askName(); }
+  if (!talk.asking && (input.jumpP || input.actP || input.startP) && talk.t > 6) {
+    if (talk.n < len) talk.n = len; else if (!talk.page.ask) talkNext();
   }
   input.jumpP = input.actP = input.startP = false;   // as teclas da conversa não viram pulo nem slide
   input.left = input.right = input.jump = false;
@@ -87,9 +108,9 @@ function tutTryTalk() {
   if (!tut.pending || talk || G.state !== 'play' || h.dead || !h.onGround || h.rail || h.ramp) return;
   if (m.target != null || m.next != null || m.cheerT > 0 || m.state !== 'ground') return;
   if (Math.abs(heroCX() - m.x) > 170) return;
-  const pages = tut.pending; tut.pending = null;
+  const pages = tut.pending, rep = tut.visitX != null; tut.pending = null;
   if (tut.step > TUT_N) tut.endTalked = true;
-  startTalk(pages, m, tut.active && tut.step > TUT_N ? tutFinish : null);
+  startTalk(pages, m, () => { tut.waitT = 0; tut.visitX = null; if (!rep && tut.active && tut.step > TUT_N) tutFinish(); });
 }
 function tutFenceHit() {
   const f = tut.fence; if (!f.on) return;
@@ -154,6 +175,19 @@ function updateTutorial() {
   const m = tut.m, h = hero, hx = heroCX(), playing = G.state === 'play';
   tut.t++; tut.stepT++; m.t += 1 / 60;
   if (tut.bump) { tut.bump.t++; if (tut.bump.t > 150) tut.bump = null; }
+  // v14: demorou para fazer a lição? o Merlin vem até o jogador e repete a instrução
+  if (tut.active && playing && !talk && !tut.pending && !h.dead && tut.step <= TUT_N && m.cheerT === 0 && m.next == null) {
+    if (++tut.waitT > TUT_WAIT) {
+      tut.waitT = 0; tut.repeatN++;
+      const pages = tutPages(tut.step);
+      tut.pending = [[(tut.repeatN > 1 ? 'SEM PRESSA, ' : 'VAMOS LÁ, ') + NAME_UP() + '! VOU REPETIR:'], pages[pages.length - 1]];
+      if (Math.abs(hx - m.x) > 110) {
+        let vx = clamp(hx + (m.x < hx ? -38 : 38), TUT.s1 * TS, tutStation(tut.step));
+        if (vx > TUT.crate0 * TS - 12 && vx < (TUT.crate1 + 1) * TS + 12) vx = TUT.crate0 * TS - 14;   // não para em cima das caixas
+        tut.visitX = vx;
+      }
+    }
+  }
   // ----- etapas (só contam fora das falas)
   if (playing && tut.active && !h.dead && !talk && !tut.pending) {
     const s = tut.step;
@@ -169,7 +203,8 @@ function updateTutorial() {
   if (tut.gate.pass && tut.gate.open < 1) tut.gate.open = Math.min(1, tut.gate.open + 0.035);
   // ----- o Merlin: vai até o ponto da etapa (pulando as caixas, a rampinha e deslizando no corrimão), comemora e explica
   if (m.cheerT > 0 && --m.cheerT === 0 && m.next != null) { m.target = m.next; m.next = null; }
-  if (m.target == null && m.next == null && m.cheerT === 0 && m.state === 'ground' && Math.abs(m.x - tutStation(tut.step)) > 3) m.target = tutStation(tut.step);
+  const home = tut.visitX != null ? tut.visitX : tutStation(tut.step);   // o posto da lição (ou perto do jogador, quando vem repetir)
+  if (m.target == null && m.next == null && m.cheerT === 0 && m.state === 'ground' && Math.abs(m.x - home) > 3) m.target = home;
   if (m.target != null && m.cheerT === 0) {
     const d = m.target - m.x;
     if (Math.abs(d) < 2.5 && m.state === 'ground') { m.x = m.target; m.target = null; m.vx = 0; }
@@ -262,32 +297,79 @@ function drawTutorialFront(g, t, vx0, vx1) {
     g.restore();
   }
 }
+// v14: no mundo, só uma seta pulando em cima de quem está falando (o texto vai numa caixa fixa na tela, ver drawTalkBox)
 function drawTutorialBubble(g) {
-  if (talk && talk.who) {   // conversa: letra por letra e o aviso de continuar quando a fala termina
-    const w = talk.who, page = talk.pages[talk.i], done = talk.n >= talkLen(page);
-    const prompt = done && ((G.frame >> 4) % 4 !== 3) ? (touchUI ? '[TOQUE] PRA CONTINUAR ▶' : '[ESPAÇO] PRA CONTINUAR ▶') : '';
-    drawBubble(g, w.x + w.face * 3, w.y - MERLIN_H - 2, page, { minX: cam.x + 3, maxX: cam.x + viewW() - 3, size: 5.2, reveal: talk.n, prompt, pages: [talk.i + 1, talk.pages.length] });
-    return;
-  }
-  if (!tut) return;
-  const m = tut.m, hx = heroCX(), near = Math.abs(hx - m.x) < 230 && G.state === 'play';
-  if (tut.bump && tut.bump.t < 150 && near) drawBubble(g, m.x + m.face * 3, m.y - MERLIN_H - 2, tut.bump.lines, { minX: cam.x + 3, maxX: cam.x + viewW() - 3, size: 5.2 });
+  const w = talk && talk.who;
+  if (!w) return;
+  const b = Math.abs(Math.sin(G.t * 5)) * 3, y = w.y - MERLIN_H - 7 - b;
+  g.beginPath(); g.moveTo(w.x - 3.4, y - 4.4); g.lineTo(w.x + 3.4, y - 4.4); g.lineTo(w.x, y); g.closePath(); fillStroke(g, '#b6ff3b', 0.6);
+  glow(g, w.x, y - 2, 9, '#b6ff3b', 0.5);
 }
-// ----- HUD: as etapas do treino
+// caixa de fala na tela: embaixo, por cima de tudo, com o retrato e o nome do Merlin; escreve letra por letra
+function talkText(lines, x, y, lh, fs, reveal) {
+  let left = Math.floor(reveal);
+  ctx.font = `800 ${fs}px ${FONT_UI}`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  lines.forEach((l, i) => {
+    let cx = x;
+    for (const part of l.split(/(\[[^\]]+\])/)) {
+      if (!part || left <= 0) continue;
+      const key = part[0] === '[';
+      let txt = key ? part.slice(1, -1) : part;
+      if (txt.length > left) txt = txt.slice(0, left);
+      left -= txt.length;
+      ctx.fillStyle = key ? '#ff9a3c' : '#fff8ea'; ctx.fillText(txt, cx, y + i * lh); cx += ctx.measureText(txt).width;
+    }
+  });
+}
+function drawTalkBox(u) {
+  if (!talk || (G.state !== 'play' && G.state !== 'paused')) return;
+  const page = talk.page, done = talk.n >= talkLen(page), sc = H / cssH;
+  const side = touchUI ? 200 * sc : 24 * u, bw = Math.min(W - side * 2, 940 * u), fs = Math.max(15 * sc, 25 * u), lh = fs * 1.32;
+  const pr = 50 * u, bh = Math.max(pr * 2 + 26 * u, page.lines.length * lh + 64 * u), bx = (W - bw) / 2, by = H - bh - (touchUI ? 12 * sc : 18 * u);
+  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = 'rgba(0,0,0,0.35)'; rr(ctx, bx + 4 * u, by + 6 * u, bw, bh, 18 * u); ctx.fill();
+  rr(ctx, bx, by, bw, bh, 18 * u); ctx.fillStyle = 'rgba(16,11,30,0.96)'; ctx.fill(); ctx.strokeStyle = '#b6ff3b'; ctx.lineWidth = 3 * u; ctx.stroke();
+  // retrato do Merlin
+  const pcx = bx + 22 * u + pr, pcy = by + bh / 2, w = talk.who;
+  ctx.save(); ell(ctx, pcx, pcy, pr, pr); const pg = ctx.createRadialGradient(pcx, pcy - pr * 0.3, 4 * u, pcx, pcy, pr); pg.addColorStop(0, '#3b5f8a'); pg.addColorStop(1, '#1a1030'); ctx.fillStyle = pg; ctx.fill(); ctx.clip();
+  const s = pr * 3.3 / MERLIN_H; ctx.translate(pcx + 4 * u, pcy + MERLIN_H * s * 0.82); ctx.scale(s, s);   // close no rosto
+  drawMerlin(ctx, { t: G.t, mode: done ? 'idle' : 'talk', stride: 0, wheel: 0, vy: 0, talk: done ? 0 : 0.5 + 0.5 * Math.sin(G.t * 15), hairDX: 0, hairDY: 0, blink: (G.frame % 170) < 6 });
+  ctx.restore();
+  ell(ctx, pcx, pcy, pr, pr); ctx.strokeStyle = '#7fd4ff'; ctx.lineWidth = 2.5 * u; ctx.stroke();
+  // aba com o nome de quem fala
+  const tag = 'MERLIN · PROFESSOR DE PATINS'; ctx.font = `800 ${15 * u}px ${FONT_UI}`; const tw = ctx.measureText(tag).width + 26 * u;
+  rr(ctx, bx + 2 * pr + 40 * u, by - 15 * u, tw, 30 * u, 10 * u); ctx.fillStyle = '#7fd4ff'; ctx.fill(); ctx.strokeStyle = OUT; ctx.lineWidth = 2 * u; ctx.stroke();
+  uiText(tag, bx + 2 * pr + 40 * u + tw / 2, by, 15 * u, '#140f1f', 'center', 800, FONT_UI, false);
+  // texto e rodapé
+  const tx = bx + 2 * pr + 44 * u, ty = by + 30 * u + fs * 0.5;
+  talkText(page.lines, tx, ty, lh, fs, talk.n);
+  const fy = by + bh - 18 * u;
+  if (talk.pages.length > 1) uiText((talk.i + 1) + '/' + talk.pages.length, tx, fy, 14 * u, '#8a83a0', 'left', 800, FONT_UI, false);
+  if (page.ask) { if (done) uiText('ESCREVA SEU NOME NA CAIXA ACIMA E CONFIRME', bx + bw - 20 * u, fy, 15 * u, '#ffd23f', 'right', 800, FONT_UI, false); }
+  else if (done && (G.frame >> 4) % 4 !== 3) uiText(touchUI ? 'TOQUE PRA CONTINUAR ▶' : 'ESPAÇO PRA CONTINUAR ▶', bx + bw - 20 * u, fy, 16 * u, '#ff9a3c', 'right', 800, FONT_UI, false);
+  ctx.restore();
+}
+// ----- HUD do tutorial: deixa claro que é um treino, qual é a lição e o que fazer; as dicas do Merlin aparecem logo abaixo
 function drawTutorialHUD(u) {
   if (tut && tut.doneT != null && tut.doneT < 150 && G.state === 'play') {   // faixa de treino completo
     const a = Math.min(1, tut.doneT / 10, (150 - tut.doneT) / 25), y = 46 * H / cssH + 34 * u;
     ctx.globalAlpha = a; ctx.save(); ctx.shadowColor = '#b6ff3b'; ctx.shadowBlur = 16 * u; uiText('TREINO COMPLETO!', W / 2, y, 40 * u, '#c8ff5a', 'center', 400, FONT_HAND); ctx.restore();
     uiText('AGORA VALE O TEMPO', W / 2, y + 30 * u, 16 * u, '#ffffff', 'center', 800); ctx.globalAlpha = 1;
   }
-  if (!tut || !tut.active || G.state !== 'play') return;
-  const y = 46 * H / cssH + 30 * u, n = TUT_STEPS.length;   // abaixo dos botões do topo
-  ctx.font = `800 ${15 * u}px ${FONT_UI}`;
-  const items = TUT_STEPS.map((s, i) => (i + 1 < tut.step ? '✓ ' : i + 1 === tut.step ? '▶ ' : '') + s);
-  const ws = items.map(s => ctx.measureText(s).width), gap = 18 * u, tw = ws.reduce((a, b) => a + b, 0) + gap * (n - 1);
-  const w = Math.max(tw, 200 * u) + 30 * u, x0 = (W - w) / 2;
-  rr(ctx, x0, y - 30 * u, w, 52 * u, 12 * u); ctx.fillStyle = 'rgba(14,10,24,0.78)'; ctx.fill(); ctx.strokeStyle = 'rgba(127,212,255,0.6)'; ctx.lineWidth = 1.5 * u; ctx.stroke();
-  uiText('TREINO COM O MERLIN · O TEMPO SÓ COMEÇA DEPOIS', W / 2, y - 16 * u, 12 * u, '#7fd4ff', 'center', 800, FONT_UI, false);
-  let x = (W - tw) / 2;
-  items.forEach((s, i) => { uiText(s, x, y + 6 * u, 15 * u, i + 1 < tut.step ? '#b6ff3b' : i + 1 === tut.step ? '#ffffff' : '#8a83a0', 'left', 800, FONT_UI, false); x += ws[i] + gap; });
+  if (!tut || !tut.active || G.state !== 'play' || talk) return;
+  const n = TUT_N, st = Math.min(tut.step, n), y0 = 46 * H / cssH + 6 * u, pw = Math.min(780 * u, W - 420 * u), px = (W - pw) / 2, ph = 84 * u;
+  rr(ctx, px, y0, pw, ph, 14 * u); ctx.fillStyle = 'rgba(14,10,24,0.88)'; ctx.fill(); ctx.strokeStyle = '#7fd4ff'; ctx.lineWidth = 2 * u; ctx.stroke();
+  rr(ctx, px + 12 * u, y0 + 10 * u, 98 * u, 24 * u, 8 * u); ctx.fillStyle = '#7fd4ff'; ctx.fill();
+  uiText('TUTORIAL', px + 61 * u, y0 + 22.5 * u, 15 * u, '#140f1f', 'center', 800, FONT_UI, false);
+  uiText(tut.step > n ? 'TODAS AS LIÇÕES FEITAS' : 'LIÇÃO ' + st + ' DE ' + n + ' · ' + TUT_STEPS[st - 1], px + 120 * u, y0 + 22.5 * u, 16 * u, '#b6ff3b', 'left', 800, FONT_UI, false);
+  for (let i = 0; i < n; i++) { const cx = px + pw - 18 * u - (n - 1 - i) * 18 * u, done = i + 1 < tut.step, cur = i + 1 === tut.step; ell(ctx, cx, y0 + 22 * u, 6 * u, 6 * u); ctx.fillStyle = done ? '#b6ff3b' : cur ? '#ffffff' : 'rgba(255,255,255,0.18)'; ctx.fill(); }
+  let goal = tutGoal(tut.step), gs = 21 * u; ctx.font = `800 ${gs}px ${FONT_UI}`;
+  while (ctx.measureText('▶ ' + goal).width > pw - 28 * u && gs > 12 * u) { gs -= 1 * u; ctx.font = `800 ${gs}px ${FONT_UI}`; }
+  uiText('▶ ' + goal, W / 2, y0 + 58 * u, gs, '#ffffff', 'center', 800, FONT_UI, false);
+  if (tut.bump && tut.bump.t < 150) {   // dica rápida do Merlin (não para o jogo)
+    const a = Math.min(1, tut.bump.t / 8, (150 - tut.bump.t) / 20), txt = 'MERLIN: ' + tut.bump.lines.join(' ').replace(/[\[\]]/g, '');
+    let fs = 17 * u; ctx.font = `800 ${fs}px ${FONT_UI}`; while (ctx.measureText(txt).width > pw - 30 * u && fs > 11 * u) { fs -= 1 * u; ctx.font = `800 ${fs}px ${FONT_UI}`; }
+    ctx.globalAlpha = a; rr(ctx, px + 20 * u, y0 + ph + 6 * u, pw - 40 * u, 32 * u, 10 * u); ctx.fillStyle = 'rgba(255,154,60,0.95)'; ctx.fill();
+    uiText(txt, W / 2, y0 + ph + 22 * u, fs, '#1c1020', 'center', 800, FONT_UI, false); ctx.globalAlpha = 1;
+  }
 }

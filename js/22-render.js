@@ -203,7 +203,7 @@ function drawWorld() {
   for (const it of items) if (!it.taken && it.rise <= 0) drawFood(ctx, it, t);
   if (alien.x > vx0 - 20 && alien.x < vx1 + 20) drawAlien(ctx, alien, t);
   mark('fg-coins'); flushEmissive(ctx); mark('fg-emis2');
-  drawTutorialFront(ctx, t, vx0, vx1);   // v8: o Merlin (atrás do herói)
+  if (G.state !== 'title') drawTutorialFront(ctx, t, vx0, vx1);   // v8: o Merlin (atrás do herói); na abertura ele aparece no primeiro plano
   drawLadeiraFront(ctx, vx0, vx1, t);   // v11: Merlin no topo da ladeira e o trânsito
   if (G.state !== 'title') drawHeroNow(beat); mark('fg-hero');
   for (const w of waves) {   // v7: leque de faíscas saindo do patins (powerslide)
@@ -263,7 +263,7 @@ function drawHUD() {
   uiText(fmt(G.timer.t), W - pad, pad + 16 * u, 34 * u, G.timer.on ? '#ffffff' : '#cfc8de', 'right');
   uiText('REC ' + fmt(G.best), W - pad, pad + 44 * u, 16 * u, '#ffd23f', 'right', 600);
   drawVU(W - pad - 46 * u, pad + 96 * u, 34 * u, AU.danger);
-  drawBossHUD(u, pad); drawBossCard(u); drawTutorialHUD(u);
+  drawBossHUD(u, pad); drawBossCard(u); drawTutorialHUD(u); drawTalkBox(u);
   if (G.state === 'play' && !G.timer.on && !G.timeFrozen && !hero.dead && !(tut && (tut.active || (tut.doneT != null && tut.doneT < 150))) && (G.frame >> 5) % 2 === 0) uiText('O TEMPO COMEÇA QUANDO VOCÊ SE MEXER', W / 2, H * 0.2, 20 * u, '#ffffff', 'center');
   if (G.state === 'play' && G.hintT < 600 && !(tut && tut.active)) {
     ctx.globalAlpha = clamp((600 - G.hintT) / 90, 0, 1) * 0.92;
@@ -277,46 +277,80 @@ function drawHUD() {
   }
   if (AU.ctx && AU.total && AU.loaded < AU.total && G.state !== 'title') uiText('carregando som ' + Math.round(AU.loaded / AU.total * 100) + '%', W / 2, H - 12 * u, 13 * u, '#9a93ad', 'center', 600);
 }
+// v14: abertura do UHUU ROLLERS — logo grande, o herói e o Merlin patinando, botão de jogar e o top 3 do ranking
 function drawTitle() {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  const u = H / 540;
-  const gr = ctx.createLinearGradient(0, 0, W, 0); gr.addColorStop(0, 'rgba(8,4,16,0.94)'); gr.addColorStop(0.44, 'rgba(8,4,16,0.86)'); gr.addColorStop(0.58, 'rgba(8,4,16,0.3)'); gr.addColorStop(1, 'rgba(8,4,16,0.1)');
+  const u = H / 540, b = Math.max(0, 1 - (((beatNow() % 1) + 1) % 1) * 3), sc = H / cssH;
+  const gr = ctx.createLinearGradient(0, 0, W, 0); gr.addColorStop(0, 'rgba(8,4,16,0.93)'); gr.addColorStop(0.5, 'rgba(8,4,16,0.72)'); gr.addColorStop(1, 'rgba(8,4,16,0.25)');
   ctx.fillStyle = gr; ctx.fillRect(0, 0, W, H);
-  const lx = Math.max(28 * u, W * 0.06);
-  ctx.save(); ctx.shadowColor = '#ff7a1a'; ctx.shadowBlur = 26 * u; uiText('MARCATRON', lx, H * 0.2, 88 * u, '#ff8a2a', 'left', 400, FONT_HAND, false); ctx.restore();
-  ctx.save(); ctx.shadowColor = '#b6ff3b'; ctx.shadowBlur = 14 * u; uiText(heroName + ' contra o sistema', lx + 8 * u, H * 0.315, 30 * u, '#c8ff5a', 'left', 400, FONT_HAND, false); ctx.restore();
-  uiText('FASE DE TESTE 1-1 · PAÇO DE SÃO BERNARDO', lx + 4 * u, H * 0.41, 21 * u, '#e8e2f6', 'left', 800);
-  const lines = ['A IA tomou São Bernardo e só deixa tocar Batidão.exe.', 'Calce os patins, aprenda com o Merlin, liberte os robotizados,', 'derrube a antena, passe pelo Paredão e toque no palco.'];
-  lines.forEach((s, i) => uiText(s, lx + 4 * u, H * 0.49 + i * 24 * u, 19 * u, '#cfc8de', 'left', 600));
-  const pulse = 0.78 + 0.22 * Math.sin(G.t * 4);
-  const yP = touchUI ? 0.65 : 0.72, yC = touchUI ? 0.71 : 0.8;
-  if (!nameAsking()) { ctx.globalAlpha = pulse; uiText(touchUI ? 'TOQUE PARA COMEÇAR O SHOW' : 'APERTE ENTER PARA COMEÇAR O SHOW', lx + 4 * u, H * yP, 26 * u, '#ffffff', 'left', 800); ctx.globalAlpha = 1; }
-  if (!nameAsking()) uiText(touchUI ? 'Direcional patina · PULAR · SLIDE solta faísca (no ar: manobra)' : '← → patinar · Espaço pular · X powerslide (no ar: manobra) · P pausa · M som', lx + 4 * u, H * yC, 17 * u, '#9a93ad', 'left', 600);
-  if (touchUI) uiText('RECORDE ' + fmt(G.best), lx + 4 * u, 34 * u, 20 * u, '#ffd23f', 'left', 800);
-  else uiText('RECORDE ' + fmt(G.best), lx + 4 * u, H * 0.88, 20 * u, '#ffd23f', 'left', 800);
-  const nx = touchUI ? W / 2 : W - 18 * u, na = touchUI ? 'center' : 'right';
-  if (isTouch) uiText('Sem som? Tire o celular do modo silencioso.', nx, H - 34 * u, 13 * u, '#9a93ad', na, 600);
-  if (AU.ctx && AU.total) uiText(AU.loaded < AU.total ? 'carregando som ' + Math.round(AU.loaded / AU.total * 100) + '%' : 'som pronto', nx, H - 16 * u, 13 * u, '#9a93ad', na, 600);
-  else uiText('o som liga no primeiro toque', nx, H - 16 * u, 13 * u, '#9a93ad', na, 600);
-  // herói em destaque, tocando
-  const hs = (touchUI ? 8 : 9.5) * u, hx = W * (touchUI ? 0.74 : 0.78), hy = H * (touchUI ? 0.7 : 0.86);
-  ctx.save(); ctx.globalCompositeOperation = 'lighter'; const sg = ctx.createRadialGradient(hx, hy - 90 * u, 10 * u, hx, hy - 60 * u, 230 * u); sg.addColorStop(0, 'rgba(255,200,120,0.35)'); sg.addColorStop(1, 'rgba(255,120,60,0)'); ctx.fillStyle = sg; ctx.fillRect(hx - 260 * u, 0, 520 * u, H); ctx.restore();
-  ctx.fillStyle = 'rgba(0,0,0,0.45)'; ell(ctx, hx, hy + 3 * u, 70 * u, 12 * u); ctx.fill();
-  ctx.save(); ctx.setTransform(hs, 0, 0, hs, hx, hy);
-  const b = Math.max(0, 1 - (((beatNow() % 1) + 1) % 1) * 3);
-  drawHeroRig(ctx, FORMP[0], { t: G.t, phase: 0, speed: 0, air: false, vy: 0, sq: 1 + b * 0.03, lean: 0, bob: 0, nod: -b * 0.8, tap: b > 0.4, strum: true, strumT: G.t * 9, strumGlow: 0.6 + b * 0.4, victory: false, dead: false, hurt: false, blink: (G.frame % 200) < 6, hairDX: Math.sin(G.t * 3) * 0.6, hairDY: -b * 0.8, badge: Math.sin(G.t * 2) * 0.3, scarf: 0, look: 1, mouth: b, gsw: 0 });
+  const lx = Math.max(36 * u, W * 0.06), ly = H * 0.22;
+  // logo: UHUU (letra de marcador, laranja → rosa) e ROLLERS (condensada, verde-limão) entre duas rodinhas girando
+  ctx.save(); ctx.translate(lx, ly); ctx.rotate(-0.06); ctx.scale(1 + b * 0.03, 1 + b * 0.03);
+  ctx.font = `400 ${132 * u}px ${FONT_HAND}`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  const lg = ctx.createLinearGradient(0, -60 * u, 0, 60 * u); lg.addColorStop(0, '#ffd23f'); lg.addColorStop(0.5, '#ff7a1a'); lg.addColorStop(1, '#ff3fa4');
+  ctx.lineJoin = 'round'; ctx.lineWidth = 16 * u; ctx.strokeStyle = '#140f1f'; ctx.strokeText('UHUU', 0, 0);
+  ctx.shadowColor = '#ff7a1a'; ctx.shadowBlur = 30 * u; ctx.fillStyle = lg; ctx.fillText('UHUU', 0, 0); ctx.shadowBlur = 0;
+  ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fillText('UHUU', -2 * u, -3 * u); ctx.fillStyle = lg; ctx.fillText('UHUU', 0, 0);
+  const uw = ctx.measureText('UHUU').width;
+  ctx.font = `800 ${62 * u}px ${FONT_UI}`; if (ctx.letterSpacing !== undefined) ctx.letterSpacing = `${6 * u}px`;
+  const rw = ctx.measureText('ROLLERS').width, rx = Math.max(30 * u, (uw - rw) / 2 + 20 * u), ry = 92 * u;
+  ctx.lineWidth = 10 * u; ctx.strokeText('ROLLERS', rx, ry); ctx.shadowColor = '#b6ff3b'; ctx.shadowBlur = 18 * u; ctx.fillStyle = '#c8ff5a'; ctx.fillText('ROLLERS', rx, ry); ctx.shadowBlur = 0;
+  if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
+  for (const wx of [rx - 26 * u, rx + rw + 22 * u]) { ctx.save(); ctx.translate(wx, ry); ctx.scale(3.6 * u, 3.6 * u); drawWheel(ctx, 0, 0, 4.6, G.t * 6 * (wx < rx ? 1 : -1), WHEEL_LIME); ctx.restore(); }
   ctx.restore();
-  for (let i = 0; i < 3; i++) { const tt = (G.t * 0.6 + i / 3) % 1; ctx.save(); ctx.globalAlpha = 1 - tt; ctx.setTransform(u * 3, 0, 0, u * 3, hx + 60 * u + Math.sin(tt * 6 + i) * 20 * u, hy - 120 * u - tt * 160 * u); noteGlyph(ctx, 0, 0, 1.3, NOTE_COLS[i]); ctx.restore(); }
+  uiText('PATINS, ROCK E LIBERDADE EM SÃO BERNARDO DO CAMPO', lx + 4 * u, H * 0.45, 20 * u, '#ffffff', 'left', 800);
+  ['A IA dominou o mundo e plugou um chip em cada ser vivo.', 'Aprenda com o Merlin, desperte humanos e animais e chegue ao palco!']
+    .forEach((t, i) => uiText(t, lx + 4 * u, H * 0.51 + i * 24 * u, 18 * u, '#cfc8de', 'left', 600));
+  // botão de jogar, pulsando no ritmo
+  const bx = lx, by = H * 0.6, bw = 330 * u, bh = 60 * u, pulse = 0.5 + 0.5 * Math.sin(G.t * 4);
+  ctx.save(); ctx.shadowColor = '#b6ff3b'; ctx.shadowBlur = (12 + 14 * pulse) * u; rr(ctx, bx, by, bw, bh, 30 * u);
+  const bg = ctx.createLinearGradient(0, by, 0, by + bh); bg.addColorStop(0, '#d8ff7a'); bg.addColorStop(1, '#7ccf2a'); ctx.fillStyle = bg; ctx.fill(); ctx.restore();
+  rr(ctx, bx, by, bw, bh, 30 * u); ctx.strokeStyle = '#140f1f'; ctx.lineWidth = 3 * u; ctx.stroke();
+  uiText('▶  JOGAR', bx + bw / 2, by + bh / 2 - 6 * u, 30 * u, '#140f1f', 'center', 800, FONT_UI, false);
+  uiText(touchUI ? 'TOQUE NA TELA' : 'ENTER OU ESPAÇO', bx + bw / 2, by + bh / 2 + 17 * u, 12 * u, '#2a3a10', 'center', 800, FONT_UI, false);
+  const nm = store.get(NAME_KEY);
+  if (G.nameReset > 0) uiText('BELEZA! O MERLIN VAI PERGUNTAR SEU NOME.', bx + bw + 20 * u, by + bh / 2, 15 * u, '#ffd23f', 'left', 800);
+  else if (nm && !touchUI) uiText('PATINADOR: ' + nm.toUpperCase() + '  ·  N: TROCAR', bx + bw + 20 * u, by + bh / 2, 15 * u, '#9a93ad', 'left', 800);
+  // top 3 do ranking
+  const top = RANK.list.slice(0, 3);
+  if (top.length) {
+    const tx = lx, ty = H * 0.75, tw = 330 * u;
+    rr(ctx, tx, ty, tw, 26 * u + top.length * 24 * u, 12 * u); ctx.fillStyle = 'rgba(20,14,32,0.85)'; ctx.fill(); ctx.strokeStyle = 'rgba(255,210,63,0.6)'; ctx.lineWidth = 1.5 * u; ctx.stroke();
+    uiText('TOP 3 · MELHORES TEMPOS', tx + 14 * u, ty + 15 * u, 13 * u, '#ffd23f', 'left', 800, FONT_UI, false);
+    top.forEach((r, i) => { const yy = ty + 38 * u + i * 24 * u, col = ['#ffcf3a', '#d7dde6', '#d08a48'][i];
+      uiText((i + 1) + 'º  ' + r.name.toUpperCase().slice(0, 16), tx + 14 * u, yy, 16 * u, col, 'left', 800, FONT_UI, false); uiText(fmt(r.best), tx + tw - 14 * u, yy, 16 * u, col, 'right', 800, FONT_UI, false); });
+  }
+  uiText(touchUI ? 'Direcional patina · PULAR · SLIDE solta faísca (no ar: manobra)' : '← → patinar · Espaço pular · X powerslide (no ar: manobra) · P pausa · M som', lx + 4 * u, H - 22 * u, 15 * u, '#9a93ad', 'left', 600);
+  const nx = W - 18 * u;
+  if (isTouch) uiText('Sem som? Tire o celular do modo silencioso.', nx, H - 40 * u, 13 * u, '#9a93ad', 'right', 600);
+  if (AU.ctx && AU.total) uiText(AU.loaded < AU.total ? 'carregando som ' + Math.round(AU.loaded / AU.total * 100) + '%' : 'som pronto', nx, H - 22 * u, 13 * u, '#9a93ad', 'right', 600);
+  else uiText('o som liga no primeiro toque', nx, H - 22 * u, 13 * u, '#9a93ad', 'right', 600);
+  // o herói e o Merlin patinando juntos, com vento e poeira
+  const hs = (touchUI ? 7.2 : 8.4) * u, gx = W * (touchUI ? 0.72 : 0.76), gy = H * 0.8 + Math.sin(G.t * 2) * 3 * u;
+  ctx.save(); ctx.globalCompositeOperation = 'lighter'; const sg = ctx.createRadialGradient(gx, gy - 90 * u, 10 * u, gx, gy - 60 * u, 260 * u); sg.addColorStop(0, 'rgba(255,190,110,0.32)'); sg.addColorStop(1, 'rgba(255,120,60,0)'); ctx.fillStyle = sg; ctx.fillRect(gx - 300 * u, 0, 600 * u, H); ctx.restore();
+  ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineCap = 'round';
+  for (let i = 0; i < 9; i++) { const yy = gy - (20 + hash(i * 3.3) * 150) * u, xx = gx + 160 * u - ((G.t * 420 * u + hash(i) * 600 * u) % (520 * u)); ctx.lineWidth = (1 + hash(i * 2) * 2) * u; ctx.beginPath(); ctx.moveTo(xx, yy); ctx.lineTo(xx + (40 + hash(i * 5) * 70) * u, yy); ctx.stroke(); }
+  ctx.fillStyle = 'rgba(0,0,0,0.45)'; ell(ctx, gx - 10 * u, gy + 3 * u, 150 * u, 12 * u); ctx.fill();
+  ctx.save(); ctx.setTransform(hs * 0.82, 0, 0, hs * 0.82, gx + 70 * u, gy);   // Merlin atrás, acenando
+  drawMerlin(ctx, { t: G.t, mode: ((G.t * 0.4) | 0) % 2 ? 'skate' : 'wave', stride: G.t * 3, wheel: G.t * 8, vy: 0, talk: 0, hairDX: -1.5 + Math.sin(G.t * 3) * 0.5, hairDY: 0, blink: (G.frame % 210) < 6 });
+  ctx.restore();
+  ctx.save(); ctx.setTransform(hs, 0, 0, hs, gx - 50 * u, gy);
+  drawHeroRig(ctx, FORMP[0], { t: G.t, phase: G.t * 4, speed: 2.4, air: false, vy: 0, sq: 1 + b * 0.03, lean: 0, bob: -Math.abs(Math.sin(G.t * 3)) * 0.4, nod: -b * 0.6, tap: false, mode: 'stride', stride: G.t * 3.2, wheel: G.t * 9, strum: false, strumT: 0, strumGlow: 0, victory: false, dead: false, hurt: false, blink: (G.frame % 200) < 6, hairDX: -2 + Math.sin(G.t * 6) * 0.4, hairDY: 0, badge: Math.sin(G.t * 5) * 0.4, scarf: 0.5, look: 1, mouth: 0.6 + 0.4 * b, gsw: Math.sin(G.t * 6) });
+  ctx.restore();
+  for (let i = 0; i < 6; i++) { const tt = (G.t * 1.4 + i / 6) % 1; ctx.fillStyle = `rgba(207,198,220,${0.4 * (1 - tt)})`; ell(ctx, gx - 70 * u - tt * 140 * u, gy - tt * 18 * u, (4 + tt * 14) * u, (3 + tt * 10) * u); ctx.fill(); }
+  for (let i = 0; i < 3; i++) { const tt = (G.t * 0.6 + i / 3) % 1; ctx.save(); ctx.globalAlpha = 1 - tt; ctx.setTransform(u * 3, 0, 0, u * 3, gx + Math.sin(tt * 6 + i) * 30 * u, gy - 200 * u - tt * 120 * u); noteGlyph(ctx, 0, 0, 1.3, NOTE_COLS[i]); ctx.restore(); }
 }
 function drawResults() {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   const u = H / 540, R = G.result;
   ctx.fillStyle = 'rgba(8,4,16,0.62)'; ctx.fillRect(0, 0, W, H);
-  const pw = Math.min(W - 40 * u, 620 * u), ph = 440 * u, px = (W - pw) / 2, py = (H - ph) / 2;
+  // v14: resultado à esquerda, ranking à direita
+  const avail = W - 40 * u, rw = clamp(avail * 0.36, 250 * u, 330 * u), pw = Math.min(600 * u, avail - rw - 16 * u), ph = 440 * u, px = (W - pw - 16 * u - rw) / 2, py = (H - ph) / 2;
+  drawRanking(px + pw + 16 * u, py, rw, ph, u, { title: 'RANKING', max: 12 });
   rr(ctx, px, py, pw, ph, 18 * u); ctx.fillStyle = 'rgba(20,14,32,0.94)'; ctx.fill();
   const bg = ctx.createLinearGradient(px, py, px + pw, py); bg.addColorStop(0, '#ff7a1a'); bg.addColorStop(0.5, '#ff3fa4'); bg.addColorStop(1, '#b6ff3b');
   ctx.strokeStyle = bg; ctx.lineWidth = 3 * u; ctx.stroke();
-  const cx = W / 2;
+  const cx = px + pw / 2;
   ctx.save(); ctx.shadowColor = '#ff3fa4'; ctx.shadowBlur = 18 * u; uiText('SHOW CONCLUÍDO!', cx, py + 48 * u, 44 * u, '#fff3e0', 'center', 400, FONT_HAND, false); ctx.restore();
   uiText('TEMPO DE ' + NAME_UP(), cx, py + 92 * u, 16 * u, '#9a93ad', 'center', 600);
   uiText(fmt(R.t), cx, py + 124 * u, 50 * u, '#ffffff', 'center', 800);
@@ -360,7 +394,6 @@ function render() {
 buildLevel(); computeRuns(); resetHero(cp.x);
 resize();
 setMuted(AU.muted);
-askName();   // v8: o nome do personagem é perguntado ao abrir o jogo
 if (document.fonts && document.fonts.load) Promise.all([document.fonts.load(`20px ${FONT_HAND}`), document.fonts.load(`800 20px ${FONT_UI}`), document.fonts.load(`600 20px ${FONT_UI}`)]).then(() => resize()).catch(() => {});
 // v9.1: desenho interpolado. A lógica continua em passos fixos de 60 Hz, mas a tela desenha cada coisa na posição entre
 // os dois últimos passos: o movimento fica liso em qualquer monitor (60, 120, 144 Hz) e some o tranco dos quadros

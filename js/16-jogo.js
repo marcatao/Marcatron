@@ -197,6 +197,7 @@ function win() {
   const sPrev = parseInt(store.get(SCORE_KEY)) || 0, sNew = stats.score > sPrev;
   if (sNew) store.set(SCORE_KEY, String(stats.score));
   G.result = { t, isNew, prev, et, medal: t <= MEDALS[0] ? 'OURO' : t <= MEDALS[1] ? 'PRATA' : t <= MEDALS[2] ? 'BRONZE' : null, score: stats.score, scoreNew: sNew && stats.score > 0, scorePrev: sPrev };
+  rankSubmit(heroName, t, { score: stats.score, medal: G.result.medal });   // v14: ranking por nome (ver 21-ranking.js)
 }
 
 // ---------- física
@@ -557,26 +558,30 @@ function updateCamera(snap) {
   if (hero.dead && !snap) return;
   const ending = G.state === 'win' || G.state === 'results';
   const bc = !ending ? bossCamera() : null;           // luta: enquadra herói e chefe
-  const zt = ending ? VHV / 206 : bc ? bc.zoom : lerp(1, LAD_ZOOM, slopeK(hero.x + hero.w / 2)) - 0.05 * SPD + SLOMO_ZOOM * G.slomo;   // v12: na ladeira a câmera abre   // no fim, a câmera abre para mostrar o palco inteiro; no pulo alto, aproxima
+  let zt = ending ? VHV / 206 : bc ? bc.zoom : lerp(1, LAD_ZOOM, slopeK(hero.x + hero.w / 2)) - 0.05 * SPD + SLOMO_ZOOM * G.slomo;
+  const tw = talk && talk.who && G.state === 'play' && !ending ? talk.who : null;   // v14: na conversa, enquadra o herói e quem fala
+  if (tw) zt = Math.min(zt, VW / (Math.abs(tw.x - (hero.x + hero.w / 2)) + 110));   // v12: na ladeira a câmera abre   // no fim, a câmera abre para mostrar o palco inteiro; no pulo alto, aproxima
   cam.zoom = snap ? zt : cam.zoom + (zt - cam.zoom) * (ending || bc ? 0.035 : 0.09);   // a aproximação do pulo alto é mais rápida
   const vw = viewW(), vh = viewH(), base = camBaseY();
   G.lead += (hero.face * (30 + Math.min(3.2, Math.abs(hero.vx)) * 7 + 46 * slopeK(hero.x + hero.w / 2)) - G.lead) * 0.03;   // v12: na ladeira olha mais à frente   // de patins, olha mais longe quando está rápido (v9.1: mais calmo)
   let tx = hero.x + hero.w / 2 - vw / 2 + G.lead * (1 - 0.6 * G.slomo);
   if (ending) tx = (STAGE_C + 8) * TS - vw / 2;
+  else if (tw) tx = (tw.x + hero.x + hero.w / 2) / 2 - vw / 2;
   else if (bc) tx = bc.hi - bc.lo <= vw ? (bc.lo + bc.hi) / 2 - vw / 2 : bc.onBoss ? (boss.x > bc.hx ? boss.x + 52 - vw : boss.x - 52) : (boss.x > bc.hx ? bc.hx - 34 : bc.hx + 34 - vw);
   cam.x = snap ? tx : cam.x + (tx - cam.x) * (ending ? 0.05 : bc ? 0.08 : 0.12);
   cam.x = clamp(cam.x, 0, LW - vw);
   // vertical: só sobe quando o herói pisa em algo bem alto ou chega perto do topo da tela
   const feet = hero.y + hero.h;
   let ty = cam.ty;
-  if (hero.onGround || ending) ty = (feet < GROUND_Y - 44 && !ending) ? feet - groundFrac() * vh : base;
+  const baseT = tw ? GROUND_Y - 0.58 * vh : base;   // conversando, o chão sobe na tela e a caixa de fala fica embaixo sem cobrir ninguém
+  if (hero.onGround || ending) ty = (feet < GROUND_Y - 44 && !ending && !tw) ? feet - groundFrac() * vh : baseT;
   if (hero.y < ty + 0.08 * vh) ty = hero.y - 0.08 * vh;
   if (feet > ty + 0.92 * vh && feet < GROUND_Y + 2) ty = feet - 0.92 * vh;
   if (G.slomo > 0 && !ending) ty = lerp(ty, hero.y + hero.h / 2 - vh * 0.46, G.slomo);   // câmera lenta: herói no meio do quadro
-  ty = clamp(ty, -24, base);
+  ty = clamp(ty, -24, baseT);
   cam.ty = ty;
   cam.y = snap ? ty : cam.y + (ty - cam.y) * (0.09 + 0.12 * G.slomo);   // no pulo alto a câmera acompanha mais firme
-  cam.y = Math.min(cam.y, base);
+  cam.y = Math.min(cam.y, baseT);
 }
 function updateDanger() {
   let d = 0; const hx = hero.x + hero.w / 2;
@@ -621,7 +626,7 @@ function startGame() {
 function update() {
   G.frame++; G.t += 1 / 60; syncInput();
   if (G.state === 'paused') { input.jumpP = input.actP = input.startP = false; return; }
-  if (G.state === 'title') { G.titleT++; colorX = colorTarget = LW + 900; cam.zoom = 1; cam.x = (G.titleT * 0.25) % 1100; cam.y = cam.ty = camBaseY(); hero.x = cam.x + VW * 0.7; if (input.startP) { if (nameAsking()) confirmName(); else startGame(); } input.jumpP = input.actP = input.startP = false; updateFx(); musicUpdate(); return; }
+  if (G.state === 'title') { G.titleT++; colorX = colorTarget = LW + 900; cam.zoom = 1; cam.x = (G.titleT * 0.25) % 1100; cam.y = cam.ty = camBaseY(); hero.x = cam.x + VW * 0.7; if (input.startP) startGame(); if (G.nameReset > 0) G.nameReset--; input.jumpP = input.actP = input.startP = false; updateFx(); musicUpdate(); return; }
   if (G.state === 'results') {   // o show continua atrás do placar: a banda toda tocando e o Gabriel no violão
     G.resT++; if (G.resT > 50 && input.startP) startGame(); input.jumpP = input.actP = input.startP = false; updateFx(); updateEnemies(); updateBoss();
     if (G.frame % 16 === 0) hero.strum = 16; else if (hero.strum > 0) hero.strum--;
