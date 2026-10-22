@@ -16,6 +16,7 @@ window.addEventListener('keydown', e => {
   if (e.code === 'KeyM') setMuted(!AU.muted);
   if (e.code === 'KeyF') toggleFull();
   if (e.code === 'KeyR' && (G.state === 'play' || G.state === 'paused') && !talk) startGame();
+  if (e.code === 'KeyN' && talk && talk.asking === 'who') answerWho(false);
   if (e.code === 'KeyN' && G.state === 'title') { store.set(NAME_KEY, ''); heroName = NAME_DEF; G.nameReset = 90; sfx('click'); }   // v14: trocar de patinador (o Merlin pergunta de novo)
 });
 window.addEventListener('keyup', e => { const k = KEYMAP[e.code]; if (k) keys[k] = false; });
@@ -36,12 +37,12 @@ bJump.addEventListener('pointerdown', e => { e.preventDefault(); audioInit(); tr
 bAct.addEventListener('pointerdown', e => { e.preventDefault(); audioInit(); input.actP = true; bAct.classList.add('on'); });
 ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => bAct.addEventListener(ev, () => bAct.classList.remove('on')));
 ['touchend', 'click'].forEach(ev => document.addEventListener(ev, () => audioInit(), { passive: true }));
-document.getElementById('wrap').addEventListener('pointerdown', () => { audioInit(); if ((G.state === 'title' && !nameAsking()) || G.state === 'results' || (G.state === 'play' && talk)) input.startP = true; });
+document.getElementById('wrap').addEventListener('pointerdown', () => { audioInit(); if ((G.state === 'title' && !nameAsking()) || G.state === 'results' || (G.state === 'play' && talk && !talk.asking)) input.startP = true; });
 // ---------- caixa do nome (v8)
 const nameBox = document.getElementById('nameBox'), nameIn = document.getElementById('nameIn');
 const nameAsking = () => !nameBox.hidden;
 function askName() {
-  nameIn.value = store.get(NAME_KEY) ? heroName : ''; nameBox.hidden = false;
+  nameIn.value = ''; nameBox.hidden = false;
   if (!COARSE) setTimeout(() => { try { nameIn.focus({ preventScroll: true }); nameIn.select(); } catch (_) {} }, 60);
 }
 function confirmName() {
@@ -53,6 +54,13 @@ nameBox.addEventListener('submit', e => { e.preventDefault(); confirmName(); });
 nameIn.addEventListener('focus', () => { if (isTouch) nameBox.classList.add('top'); });
 nameIn.addEventListener('blur', () => nameBox.classList.remove('top'));
 ['pointerdown', 'touchstart'].forEach(ev => nameBox.addEventListener(ev, e => e.stopPropagation(), { passive: true }));
+// v17: "é você mesmo?" — no começo de cada partida o Merlin confirma o patinador (ou deixa trocar o nome)
+const whoBox = document.getElementById('whoBox');
+function askWho() { whoBox.hidden = false; if (!COARSE) setTimeout(() => { try { document.getElementById('whoYes').focus({ preventScroll: true }); } catch (_) {} }, 60); }
+function answerWho(yes) { if (whoBox.hidden) return; whoBox.hidden = true; try { document.activeElement.blur(); } catch (_) {} audioInit(); talkWho(yes); }
+document.getElementById('whoYes').addEventListener('click', () => answerWho(true));
+document.getElementById('whoNo').addEventListener('click', () => answerWho(false));
+['pointerdown', 'touchstart'].forEach(ev => whoBox.addEventListener(ev, e => e.stopPropagation(), { passive: true }));
 document.getElementById('bPause').addEventListener('click', e => { e.currentTarget.blur(); audioInit(); togglePause(); });
 document.getElementById('bMute').addEventListener('click', e => { e.currentTarget.blur(); audioInit(); setMuted(!AU.muted); });
 document.getElementById('bFull').addEventListener('click', e => { e.currentTarget.blur(); toggleFull(); });

@@ -29,7 +29,7 @@ function tutPages(step) {
   const k = KEYS(), n = NAME_UP();
   switch (step) {
     case 1: return [
-      { ask: 'name', lines: ['E AÍ, PATINADOR! CHEGA MAIS.', 'ANTES DE TUDO: QUAL É O SEU NOME?'] },
+      whoPage(),
       () => ['OLÁ, ' + NAME_UP() + '! EU SOU O MERLIN,', 'PROFESSOR DE PATINS AQUI DO PAÇO.'],
       ['PRESTA ATENÇÃO: A IA DOMINOU O MUNDO.', 'ELA PLUGOU UM CHIP EM CADA SER VIVO.'],
       ['GENTE E BICHO VIRARAM ROBÔ: OBEDECEM', 'SEM PENSAR, SEM MÚSICA, SEM ALEGRIA.'],
@@ -44,10 +44,14 @@ function tutPages(step) {
     case 7: return [['VIU SÓ? MAIS UM LIVRE!'], ['É ASSIM QUE A GENTE SALVA O MUNDO:', 'DESLIGANDO A IA DOS SERES VIVOS.'], ['POWERSLIDE OU PULO NA CABEÇA: CADA UM QUE', 'VOCÊ DESPERTA VOLTA A SENTIR A MÚSICA.'], ['ÚLTIMA LIÇÃO: O CORRIMÃO.', 'PULA EM CIMA DELE E DESLIZA ATÉ O FIM!']];
     default: return tut && tut.first
       ? [['MANDOU BEM, ' + n + '! TREINO COMPLETO.'], ['AGORA É COM VOCÊ: LIBERTA A CIDADE', 'E DESLIGA A IA DE TODO MUNDO!'], ['DICA: NO AR, ' + k.act + ' FAZ MANOBRA', 'E DÁ PONTOS. CAPRICHA!']]
-      : [...(store.get(NAME_KEY) ? [] : [{ ask: 'name', lines: ['E AÍ, PATINADOR! ANTES DE TUDO:', 'QUAL É O SEU NOME?'] }]),
+      : [whoPage(),
         () => ['OLÁ, ' + NAME_UP() + '! JÁ SABE O ESQUEMA:', 'A IA DOMINOU O MUNDO E A GENTE DESLIGA ELA.'], ['POWERSLIDE OU PULO NA CABEÇA', 'DESPERTA QUEM TÁ PLUGADO. BORA!']];
   }
 }
+// v17: a primeira fala de toda partida: sem nome salvo, pergunta o nome; com nome salvo, confirma se é a mesma pessoa
+const whoPage = () => store.get(NAME_KEY)
+  ? () => ({ ask: 'who', lines: ['E AÍ! É VOCÊ MESMO, ' + NAME_UP() + '?', 'OU QUER TROCAR O NOME?'] })
+  : { ask: 'name', lines: ['E AÍ, PATINADOR! CHEGA MAIS.', 'ANTES DE TUDO: QUAL É O SEU NOME?'] };
 const TUT_ST = [null, 's1', 's2', 's3', 's4', 's5', 's6', 's7'];
 // v14: o objetivo de cada lição, sempre visível no topo da tela durante o tutorial
 function tutGoal(step) {
@@ -86,16 +90,23 @@ function talkNext() {
   else { const f = talk.onEnd; talk = null; sfx('click', { vol: 0.5, rate: 1.2 }); if (f) f(); }
 }
 function talkNameAnswered() {   // o jogador digitou o nome (ver 04-entrada.js)
-  if (!talk || !talk.asking) return;
+  if (!talk || talk.asking !== 'name') return;
   talk.asking = false; talk.page.ask = null; sfx('combo', { vol: 0.5 }); talkNext();
+}
+function talkWho(yes) {   // respondeu "é você mesmo?" (ver 04-entrada.js)
+  if (!talk || talk.asking !== 'who') return;
+  talk.asking = false; talk.page.ask = null;
+  if (!yes) talk.pages.splice(talk.i + 1, 0, { ask: 'name', lines: ['BELEZA! ENTÃO ME DIZ:', 'QUAL É O SEU NOME?'] });
+  sfx(yes ? 'combo' : 'click', { vol: 0.5 }); talkNext();
 }
 function updateTalk() {
   if (!talk) return false;
   talk.t++;
   const len = talkLen(talk.page);
   if (talk.n < len) { talk.n = Math.min(len, talk.n + TALK_CPS); if (talk.t % 4 === 0) sfx('click', { vol: 0.12, rate: 1.5 + Math.random() * 0.5 }); if (talk.who) talk.who.talkT = 12; }
-  else if (talk.page.ask && !talk.asking) { talk.asking = true; askName(); }
-  if (!talk.asking && (input.jumpP || input.actP || input.startP) && talk.t > 6) {
+  else if (talk.page.ask && !talk.asking) { talk.asking = talk.page.ask; if (talk.asking === 'who') askWho(); else askName(); }
+  if (talk.asking === 'who' && (input.jumpP || input.startP)) answerWho(true);   // ESPAÇO/ENTER = sou eu
+  else if (!talk.asking && (input.jumpP || input.actP || input.startP) && talk.t > 6) {
     if (talk.n < len) talk.n = len; else if (!talk.page.ask) talkNext();
   }
   input.jumpP = input.actP = input.startP = false;   // as teclas da conversa não viram pulo nem slide
@@ -345,7 +356,8 @@ function drawTalkBox(u) {
   talkText(page.lines, tx, ty, lh, fs, talk.n);
   const fy = by + bh - 18 * u;
   if (talk.pages.length > 1) uiText((talk.i + 1) + '/' + talk.pages.length, tx, fy, 14 * u, '#8a83a0', 'left', 800, FONT_UI, false);
-  if (page.ask) { if (done) uiText('ESCREVA SEU NOME NA CAIXA ACIMA E CONFIRME', bx + bw - 20 * u, fy, 15 * u, '#ffd23f', 'right', 800, FONT_UI, false); }
+  if (page.ask === 'who') { if (done) uiText(touchUI ? 'TOQUE EM UMA DAS OPÇÕES ACIMA' : 'ESPAÇO: SOU EU  ·  N: TROCAR NOME', bx + bw - 20 * u, fy, 15 * u, '#ffd23f', 'right', 800, FONT_UI, false); }
+  else if (page.ask) { if (done) uiText('ESCREVA SEU NOME NA CAIXA ACIMA E CONFIRME', bx + bw - 20 * u, fy, 15 * u, '#ffd23f', 'right', 800, FONT_UI, false); }
   else if (done && (G.frame >> 4) % 4 !== 3) uiText(touchUI ? 'TOQUE PRA CONTINUAR ▶' : 'ESPAÇO PRA CONTINUAR ▶', bx + bw - 20 * u, fy, 16 * u, '#ff9a3c', 'right', 800, FONT_UI, false);
   ctx.restore();
 }

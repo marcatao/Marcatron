@@ -265,7 +265,7 @@ function drawHUD() {
   drawVU(W - pad - 46 * u, pad + 96 * u, 34 * u, AU.danger);
   drawBossHUD(u, pad); drawBossCard(u); drawTutorialHUD(u); drawSpeedo(u); drawTalkBox(u);
   if (G.state === 'play' && !G.timer.on && !G.timeFrozen && !hero.dead && !(tut && (tut.active || (tut.doneT != null && tut.doneT < 150))) && (G.frame >> 5) % 2 === 0) uiText('O TEMPO COMEÇA QUANDO VOCÊ SE MEXER', W / 2, H * 0.2, 20 * u, '#ffffff', 'center');
-  if (G.state === 'play' && G.hintT < 600 && !(tut && tut.active)) {
+  if (G.state === 'play' && G.hintT < 600 && !(tut && tut.active) && !talk) {
     ctx.globalAlpha = clamp((600 - G.hintT) / 90, 0, 1) * 0.92;
     uiText(touchUI ? 'DIRECIONAL PATINA · PULAR (SEGURE = MAIS ALTO) · SLIDE = FAÍSCA (NO AR: MANOBRA)' : '← → PATINAR · ESPAÇO PULAR (SEGURE = MAIS ALTO) · X POWERSLIDE (NO AR: MANOBRA)', W / 2, H - (touchUI ? 46 : 26) * u, (touchUI ? 15 : 17) * u, '#f2eefa', 'center', 600);
     ctx.globalAlpha = 1;
