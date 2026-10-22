@@ -54,10 +54,11 @@ function drawRanking(x, y, w, h, u, opts = {}) {
     const yy = top + i * lh, me = RANK.mine && rankKey(r.name) === RANK.mine;
     if (me) { rr(ctx, x + 10 * u, yy - lh * 0.46, w - 20 * u, lh * 0.92, 6 * u); ctx.fillStyle = 'rgba(182,255,59,0.18)'; ctx.fill(); }
     const col = me ? '#c8ff5a' : i === 0 ? '#ffcf3a' : i === 1 ? '#d7dde6' : i === 2 ? '#d08a48' : '#e8e2f6';
-    uiText((i + 1) + 'º', x + 22 * u, yy, 16 * u, col, 'left', 800, FONT_UI, false);
-    ctx.font = `800 ${16 * u}px ${FONT_UI}`; let nm = r.name.toUpperCase(); while (ctx.measureText(nm).width > w - 150 * u && nm.length > 3) nm = nm.slice(0, -1);
-    uiText(nm, x + 56 * u, yy, 16 * u, col, 'left', 800, FONT_UI, false);
-    uiText(fmt(r.best), x + w - 20 * u, yy, 16 * u, col, 'right', 800, FONT_UI, false);
+    const fs = Math.min(16 * u, lh * 0.8);
+    uiText((i + 1) + 'º', x + 22 * u, yy, fs, col, 'left', 800, FONT_UI, false);
+    ctx.font = `800 ${fs}px ${FONT_UI}`; let nm = r.name.toUpperCase(); while (ctx.measureText(nm).width > w - 150 * u && nm.length > 3) nm = nm.slice(0, -1);
+    uiText(nm, x + 56 * u, yy, fs, col, 'left', 800, FONT_UI, false);
+    uiText(fmt(r.best), x + w - 20 * u, yy, fs, col, 'right', 800, FONT_UI, false);
   });
   if (RANK.myPos > max && !mineIn) {
     const r = rows[RANK.myPos - 1], yy = top + max * lh + 4 * u;

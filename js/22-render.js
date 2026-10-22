@@ -311,22 +311,16 @@ function drawTitle() {
   const nm = store.get(NAME_KEY);
   if (G.nameReset > 0) uiText('BELEZA! O MERLIN VAI PERGUNTAR SEU NOME.', bx + bw + 20 * u, by + bh / 2, 15 * u, '#ffd23f', 'left', 800);
   else if (nm && !touchUI) uiText('PATINADOR: ' + nm.toUpperCase() + '  ·  N: TROCAR', bx + bw + 20 * u, by + bh / 2, 15 * u, '#9a93ad', 'left', 800);
-  // top 3 do ranking
-  const top = RANK.list.slice(0, 3);
-  if (top.length) {
-    const tx = lx, ty = H * 0.75, tw = 330 * u;
-    rr(ctx, tx, ty, tw, 26 * u + top.length * 24 * u, 12 * u); ctx.fillStyle = 'rgba(20,14,32,0.85)'; ctx.fill(); ctx.strokeStyle = 'rgba(255,210,63,0.6)'; ctx.lineWidth = 1.5 * u; ctx.stroke();
-    uiText('TOP 3 · MELHORES TEMPOS', tx + 14 * u, ty + 15 * u, 13 * u, '#ffd23f', 'left', 800, FONT_UI, false);
-    top.forEach((r, i) => { const yy = ty + 38 * u + i * 24 * u, col = ['#ffcf3a', '#d7dde6', '#d08a48'][i];
-      uiText((i + 1) + 'º  ' + r.name.toUpperCase().slice(0, 16), tx + 14 * u, yy, 16 * u, col, 'left', 800, FONT_UI, false); uiText(fmt(r.best), tx + tw - 14 * u, yy, 16 * u, col, 'right', 800, FONT_UI, false); });
-  }
+  // v15: ranking top 10 à direita da abertura
+  { const rw = clamp(W * 0.3, 260 * u, 340 * u), nm0 = store.get(NAME_KEY); if (!G.result) { RANK.mine = nm0 ? rankKey(nm0) : null; rankFindMine(); }   // destaca o patinador atual
+    drawRanking(W - rw - 24 * u, 54 * H / cssH + 8 * u, rw, 300 * u, u, { title: 'TOP 10', max: 10 }); }
   uiText(touchUI ? 'Direcional patina · PULAR · SLIDE solta faísca (no ar: manobra)' : '← → patinar · Espaço pular · X powerslide (no ar: manobra) · P pausa · M som', lx + 4 * u, H - 22 * u, 15 * u, '#9a93ad', 'left', 600);
   const nx = W - 18 * u;
   if (isTouch) uiText('Sem som? Tire o celular do modo silencioso.', nx, H - 40 * u, 13 * u, '#9a93ad', 'right', 600);
   if (AU.ctx && AU.total) uiText(AU.loaded < AU.total ? 'carregando som ' + Math.round(AU.loaded / AU.total * 100) + '%' : 'som pronto', nx, H - 22 * u, 13 * u, '#9a93ad', 'right', 600);
   else uiText('o som liga no primeiro toque', nx, H - 22 * u, 13 * u, '#9a93ad', 'right', 600);
   // o herói e o Merlin patinando juntos, com vento e poeira
-  const hs = (touchUI ? 7.2 : 8.4) * u, gx = W * (touchUI ? 0.72 : 0.76), gy = H * 0.8 + Math.sin(G.t * 2) * 3 * u;
+  const hs = 4.4 * u, gx = W - clamp(W * 0.15, 150 * u, 190 * u), gy = H - 34 * u + Math.sin(G.t * 2) * 2 * u;   // embaixo do ranking
   ctx.save(); ctx.globalCompositeOperation = 'lighter'; const sg = ctx.createRadialGradient(gx, gy - 90 * u, 10 * u, gx, gy - 60 * u, 260 * u); sg.addColorStop(0, 'rgba(255,190,110,0.32)'); sg.addColorStop(1, 'rgba(255,120,60,0)'); ctx.fillStyle = sg; ctx.fillRect(gx - 300 * u, 0, 600 * u, H); ctx.restore();
   ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineCap = 'round';
   for (let i = 0; i < 9; i++) { const yy = gy - (20 + hash(i * 3.3) * 150) * u, xx = gx + 160 * u - ((G.t * 420 * u + hash(i) * 600 * u) % (520 * u)); ctx.lineWidth = (1 + hash(i * 2) * 2) * u; ctx.beginPath(); ctx.moveTo(xx, yy); ctx.lineTo(xx + (40 + hash(i * 5) * 70) * u, yy); ctx.stroke(); }
@@ -338,7 +332,7 @@ function drawTitle() {
   drawHeroRig(ctx, FORMP[0], { t: G.t, phase: G.t * 4, speed: 2.4, air: false, vy: 0, sq: 1 + b * 0.03, lean: 0, bob: -Math.abs(Math.sin(G.t * 3)) * 0.4, nod: -b * 0.6, tap: false, mode: 'stride', stride: G.t * 3.2, wheel: G.t * 9, strum: false, strumT: 0, strumGlow: 0, victory: false, dead: false, hurt: false, blink: (G.frame % 200) < 6, hairDX: -2 + Math.sin(G.t * 6) * 0.4, hairDY: 0, badge: Math.sin(G.t * 5) * 0.4, scarf: 0.5, look: 1, mouth: 0.6 + 0.4 * b, gsw: Math.sin(G.t * 6) });
   ctx.restore();
   for (let i = 0; i < 6; i++) { const tt = (G.t * 1.4 + i / 6) % 1; ctx.fillStyle = `rgba(207,198,220,${0.4 * (1 - tt)})`; ell(ctx, gx - 70 * u - tt * 140 * u, gy - tt * 18 * u, (4 + tt * 14) * u, (3 + tt * 10) * u); ctx.fill(); }
-  for (let i = 0; i < 3; i++) { const tt = (G.t * 0.6 + i / 3) % 1; ctx.save(); ctx.globalAlpha = 1 - tt; ctx.setTransform(u * 3, 0, 0, u * 3, gx + Math.sin(tt * 6 + i) * 30 * u, gy - 200 * u - tt * 120 * u); noteGlyph(ctx, 0, 0, 1.3, NOTE_COLS[i]); ctx.restore(); }
+  for (let i = 0; i < 3; i++) { const tt = (G.t * 0.6 + i / 3) % 1; ctx.save(); ctx.globalAlpha = 1 - tt; ctx.setTransform(u * 3, 0, 0, u * 3, gx - 130 * u + Math.sin(tt * 6 + i) * 24 * u, gy - 70 * u - tt * 90 * u); noteGlyph(ctx, 0, 0, 1.3, NOTE_COLS[i]); ctx.restore(); }
 }
 function drawResults() {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
