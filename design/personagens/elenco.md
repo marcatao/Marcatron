@@ -1,6 +1,11 @@
-# Elenco — Uhuu Rollers (v3, rascunho 3)
+# Elenco — Uhuu Rollers (v3, rascunho 4)
 
-Os personagens são as próprias ilustrações de referência (`referencias/1.webp`, `2.webp`, `3.webp`), recortadas em
+O **personagem principal** é o da ficha Inline City (`referencias/principal-ficha.png`). A vista LADO foi espelhada
+(para olhar para +x), recortada por `cut_principal.py` (gera `sprites/principal-*.webp` e `principal.json`) e é animada
+de perfil por `principal.js` (`loadMain()` e `drawMain(g, pose, t, escala)`). O braço e a perna de trás são as mesmas
+peças, escurecidas. Altura no jogo: 24 unidades (um bloco e meio).
+
+Os outros patinadores são as próprias ilustrações de referência (`referencias/1.webp`, `2.webp`, `3.webp`), recortadas em
 14 peças e animadas por esqueleto (animação de recorte, "cutout").
 
 - `cut.py` + `rigcfg.py`: tiram o fundo, recortam as peças pelos polígonos de `rigcfg.py` e gravam

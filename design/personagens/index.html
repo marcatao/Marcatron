@@ -51,13 +51,19 @@ section>p{color:var(--dim);margin:0;max-width:72ch}
 .game{overflow-x:auto;border-radius:14px}
 .game canvas{display:block}
 @media (prefers-reduced-motion:reduce){.seg button,.tog{transition:none}}
+.hero{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:18px;align-items:stretch}
+.hero .card canvas{aspect-ratio:1/1}
+.ficha{background:var(--panel);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;min-width:0}
+.ficha img{display:block;width:100%;height:auto}
+.ficha p{margin:0;padding:12px 16px 16px;color:var(--dim);font-size:14px}
+@media (max-width:760px){.hero{grid-template-columns:1fr}}
 </style>
 
 <div class="wrap">
   <header>
-    <span class="eyebrow">Uhuu Rollers · elenco v3 · rascunho 3</span>
+    <span class="eyebrow">Uhuu Rollers · elenco v3 · rascunho 4</span>
     <h1>Os patinadores</h1>
-    <p class="lede">Agora são as próprias ilustrações de referência, recortadas em 14 peças (cabeça, tronco, bacia, braços, antebraços, coxas, canelas e patins) e animadas por um esqueleto. As juntas ficam escondidas debaixo das cotoveleiras, joelheiras, gola e cós. Como as ilustrações são de frente, o corpo trabalha como um patinador visto de frente: empurra para o lado, joga o peso na perna que desliza e agacha dobrando os joelhos.</p>
+    <p class="lede">O personagem principal agora é o da ficha Inline City. A vista de lado foi recortada em peças (cabeça, tronco com mochila, braço, antebraço com luva, coxa, canela e patins) e animada de perfil, olhando para a frente da fase. O braço e a perna de trás são as mesmas peças, mais escuras, atrás do corpo. Mais abaixo ficam os outros três patinadores, recortados das primeiras referências.</p>
   </header>
 
   <div class="bar" role="toolbar" aria-label="Controles da prancha">
@@ -69,22 +75,37 @@ section>p{color:var(--dim);margin:0;max-width:72ch}
     </div>
   </div>
 
-  <div class="cards" id="cards"></div>
+  <section>
+    <h2>Personagem principal</h2>
+    <div class="hero">
+      <article class="card"><canvas id="mainCv" aria-label="Personagem principal animado de perfil na pose escolhida"></canvas>
+        <div class="info"><div class="nm"><h3>Principal</h3><span class="chip">ficha Inline City · vista de lado</span></div>
+          <dl><dt>Visual</dt><dd>Capacete preto com a coroa, cabelo castanho, camiseta branca larga com a coroa, mochila urbana preta, calça cargo preta, luva sem dedo com munhequeira e patins inline brancos e pretos de 4 rodas.</dd>
+          <dt>No jogo</dt><dd>Olha para a direita (a ficha olha para a esquerda; foi espelhada). Altura de um bloco e meio, como o herói de hoje.</dd></dl></div></article>
+      <figure class="ficha" style="margin:0"><img src="sprites/principal-ficha.webp" alt="Ficha de personagem Inline City: vistas de frente, lado e costas, expressões, detalhes e cenas em ação" width="1254" height="1254"><p>A ficha enviada. As expressões e as vistas de frente e de costas ficam guardadas para as próximas etapas (rosto mudando com a ação, virar de costas).</p></figure>
+    </div>
+  </section>
+
+  <section>
+    <h2>Outros patinadores</h2>
+    <div class="cards" id="cards"></div>
+  </section>
 
   <section>
     <h2>Folha de poses</h2>
-    <p>As sete poses de cada um, animadas ao mesmo tempo.</p>
+    <p>As sete poses de cada um, animadas ao mesmo tempo. A primeira linha é o principal.</p>
     <div class="sheet"><canvas id="sheet" aria-label="Folha de poses dos três personagens"></canvas></div>
   </section>
 
   <section>
     <h2>No tamanho do jogo</h2>
-    <p>Escala de uma tela de 960×540, com cada patinador da altura de dois blocos de 16 unidades. Serve para ver se a ilustração ainda lê bem pequena e contra o cenário roxo.</p>
+    <p>Escala de uma tela de 960×540. O principal tem um bloco e meio de altura (24 unidades, como o herói de hoje); os outros, dois blocos. Serve para ver se a ilustração ainda lê bem pequena e contra o cenário roxo.</p>
     <div class="game"><canvas id="game" aria-label="Os três personagens no tamanho do jogo"></canvas></div>
   </section>
 </div>
 
 <script src="rig.js"></script>
+<script src="principal.js"></script>
 <script>
 const INFO = {
   1: { name: 'Patinador 1', ref: 'referência 1', look: 'Capacete preto com chamas vermelhas, óculos de proteção, cabelo preto espetado e sorrisão. Jaqueta de brim preta com spikes e patches, camiseta com guitarra, cinto com pochetes e corrente, calça cargo verde-oliva.', wheels: 'Rodas vermelhas.' },
@@ -142,15 +163,24 @@ function drawCards() {
     g.save(); g.translate(w * 0.5, gy); drawRig(g, id, state.pose, state.t, s, { shadow: shadowCol() }); g.restore();
   }
 }
+function drawMainCard() {
+  const cv = document.getElementById('mainCv'), { w, h, dpr } = fit(cv), g = cv.getContext('2d');
+  g.setTransform(dpr, 0, 0, dpr, 0, 0); const gy = h * 0.9; backdrop(g, w, h, gy, state.light);
+  g.save(); g.translate(w * (state.pose === 'slide' ? 0.42 : 0.5), gy); drawMain(g, state.pose, state.t, h * 0.62 / MAIN_H, { shadow: shadowCol() }); g.restore();
+}
+const MAIN_H = 730;   // altura do recorte de perfil (px)
 function drawSheet() {
   const cell = 170, rowH = 250, cv = document.getElementById('sheet');
-  const { dpr } = fit(cv, cell * POSE_KEYS.length, rowH * ORDER.length + 30), g = cv.getContext('2d'), W = cell * POSE_KEYS.length;
+  const rows = ORDER.length + 1, { dpr } = fit(cv, cell * POSE_KEYS.length, rowH * rows + 30), g = cv.getContext('2d'), W = cell * POSE_KEYS.length;
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
-  g.fillStyle = state.light ? '#f3eef9' : '#181226'; g.fillRect(0, 0, W, rowH * ORDER.length + 30);
+  g.fillStyle = state.light ? '#f3eef9' : '#181226'; g.fillRect(0, 0, W, rowH * rows + 30);
   g.font = '800 13px "Barlow Condensed", sans-serif'; g.textAlign = 'center'; g.fillStyle = state.light ? '#5a4a80' : '#a79fbc';
   POSE_KEYS.forEach((k, i) => g.fillText(POSES[k].label.toUpperCase(), i * cell + cell / 2, 20));
-  ORDER.forEach((id, r) => {
-    const gy = 30 + r * rowH + rowH * 0.94, s = rowH * 0.6 / CHAR_H;
+  { const gy = 30 + rowH * 0.94, s = rowH * 0.62 / MAIN_H;
+    g.fillStyle = state.light ? '#ddd3ec' : '#211a33'; g.fillRect(0, gy, W, 2);
+    POSE_KEYS.forEach((k, i) => { g.save(); g.beginPath(); g.rect(i * cell, 30, cell, rowH); g.clip(); g.translate(i * cell + cell / 2, gy); drawMain(g, k, state.t + i * 0.37, s, { shadow: shadowCol() }); g.restore(); }); }
+  ORDER.forEach((id, r0) => {
+    const r = r0 + 1, gy = 30 + r * rowH + rowH * 0.94, s = rowH * 0.6 / CHAR_H;
     g.fillStyle = state.light ? '#ddd3ec' : '#211a33'; g.fillRect(0, gy, W, 2);
     POSE_KEYS.forEach((k, i) => {
       g.save(); g.beginPath(); g.rect(i * cell, 30 + r * rowH, cell, rowH); g.clip();
@@ -168,7 +198,8 @@ function drawGame() {
   const tile = 16 * K;
   for (let x = 0; x < Wc; x += tile) { g.fillStyle = '#4a3a6a'; g.fillRect(x, gy, tile - 1, Hc - gy); g.fillStyle = '#6a5a90'; g.fillRect(x, gy, tile - 1, 4); }
   const s = 32 * K / CHAR_H;   // dois blocos de altura
-  [[240, '1'], [480, '2'], [720, '3']].forEach(([x, id]) => { g.save(); g.translate(x, gy); drawRig(g, id, state.pose, state.t, s, { shadow: 'rgba(5,2,12,0.45)' }); g.restore(); });
+  { g.save(); g.translate(150, gy); drawMain(g, state.pose, state.t, 24 * K / MAIN_H, { shadow: 'rgba(5,2,12,0.45)' }); g.restore(); }
+  [[400, '1'], [610, '2'], [820, '3']].forEach(([x, id]) => { g.save(); g.translate(x, gy); drawRig(g, id, state.pose, state.t, s, { shadow: 'rgba(5,2,12,0.45)' }); g.restore(); });
   g.font = '800 13px "Barlow Condensed", sans-serif'; g.fillStyle = 'rgba(242,238,250,.7)'; g.textAlign = 'left';
   g.fillText('BLOCO = 16 UNIDADES · ' + POSES[state.pose].label.toUpperCase(), 12, 20);
 }
@@ -177,10 +208,10 @@ let last = performance.now();
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   if (!state.paused) state.t += dt * (state.slow ? 0.25 : 1);
-  drawCards(); drawSheet(); drawGame();
+  drawMainCard(); drawCards(); drawSheet(); drawGame();
   requestAnimationFrame(frame);
 }
 try { if (matchMedia('(prefers-reduced-motion: reduce)').matches) state.paused = true; } catch (e) {}
 syncBar();
-loadRig().then(() => requestAnimationFrame(frame));
+Promise.all([loadRig(), loadMain()]).then(() => requestAnimationFrame(frame));
 </script>
