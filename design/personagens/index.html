@@ -1,0 +1,209 @@
+<title>Elenco Uhuu Rollers</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;800&family=Permanent+Marker&display=swap">
+<style>
+/* Layout: prancha de elenco — barra de poses fixa no topo, três cartões grandes, folha de poses e a fileira no tamanho do jogo.
+   Tema único escuro, o mesmo da tela do jogo (roxo noturno com verde-limão, laranja e rosa). */
+:root{
+  --bg:#0e0a18; --panel:#181226; --panel2:#211a33; --ink:#f2eefa; --dim:#a79fbc; --rule:rgba(255,255,255,.1);
+  --lime:#b6ff3b; --orange:#ff7a1a; --pink:#ff3fa4;
+  --f-disp:"Permanent Marker","Comic Sans MS",cursive;
+  --f-ui:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"Barlow",system-ui,-apple-system,sans-serif;
+  color-scheme:dark;
+}
+html,body{background:var(--bg);color:var(--ink)}
+body{font:400 15px/1.5 var(--f-body);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 48px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:40px}
+header{padding-top:28px;display:flex;flex-direction:column;gap:6px}
+.eyebrow{font:800 13px/1 var(--f-ui);letter-spacing:.12em;text-transform:uppercase;color:var(--lime)}
+h1{font:400 clamp(34px,6vw,56px)/1 var(--f-disp);margin:0;text-wrap:balance}
+h2{font:800 24px/1.1 var(--f-ui);letter-spacing:.03em;margin:0;text-transform:uppercase;text-wrap:balance}
+.lede{color:var(--dim);max-width:68ch;margin:4px 0 0}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:rgba(14,10,24,.92);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-bottom:1px solid var(--rule);padding:10px 0;display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button,.tog{font:800 15px/1 var(--f-ui);letter-spacing:.04em;color:var(--ink);background:var(--panel2);border:1px solid var(--rule);border-radius:999px;padding:8px 13px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--lime);color:#160c02;border-color:var(--lime)}
+.tog[aria-pressed="true"]{border-color:var(--orange);color:var(--orange)}
+button:focus-visible{outline:2px solid var(--pink);outline-offset:2px}
+.opts{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px}
+.card{background:var(--panel);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;min-width:0}
+.card canvas{display:block;width:100%;aspect-ratio:4/4.3;max-width:100%}
+.info{padding:14px 16px 18px;display:flex;flex-direction:column;gap:10px}
+.nm{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.nm h3{font:400 28px/1 var(--f-disp);margin:0}
+.chip{font:800 12px/1 var(--f-ui);letter-spacing:.1em;text-transform:uppercase;padding:5px 8px;border-radius:6px;background:var(--panel2);color:var(--dim)}
+.quote{font:600 17px/1.3 var(--f-ui);color:var(--lime);margin:0}
+dl{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:0;font-size:14px}
+dt{font:800 12px/1.7 var(--f-ui);letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+dd{margin:0;min-width:0}
+.pal{display:flex;flex-wrap:wrap;gap:5px}
+.sw{display:flex;flex-direction:column;align-items:center;gap:3px;font:600 10.5px/1 var(--f-ui);color:var(--dim);font-variant-numeric:tabular-nums}
+.sw i{width:26px;height:26px;border-radius:6px;display:block;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
+section{display:flex;flex-direction:column;gap:12px}
+section>p{color:var(--dim);margin:0;max-width:72ch}
+.sheet{overflow-x:auto;background:var(--panel);border-radius:14px}
+.sheet canvas{display:block}
+.game{overflow-x:auto;border-radius:14px}
+.game canvas{display:block}
+@media (prefers-reduced-motion:reduce){.seg button,.tog{transition:none}}
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Uhuu Rollers · elenco v2 · rascunho 1</span>
+    <h1>Os patinadores</h1>
+    <p class="lede">Remodelagem do Gabriel Rock e do Merlin, e a estreia da Lua Riff. Formas chapadas, uma sombra dura por peça, membros de macarrão e cores de bala, com o rock nos detalhes: crista de moicano no capacete, palhetas, raios e flanela. Todo mundo de capacete, joelheira, cotoveleira e munhequeira.</p>
+  </header>
+
+  <div class="bar" role="toolbar" aria-label="Controles da prancha">
+    <div class="seg" id="poses" aria-label="Pose"></div>
+    <div class="opts">
+      <button class="tog" id="tLine" type="button" aria-pressed="true">Contorno</button>
+      <button class="tog" id="tBg" type="button" aria-pressed="false">Fundo claro</button>
+      <button class="tog" id="tPause" type="button" aria-pressed="false">Pausar</button>
+    </div>
+  </div>
+
+  <div class="cards" id="cards"></div>
+
+  <section>
+    <h2>Folha de poses</h2>
+    <p>As sete poses de cada um, animadas ao mesmo tempo. Cada linha tem a própria escala: o Merlin aparece menor aqui porque é bem mais alto.</p>
+    <div class="sheet"><canvas id="sheet" aria-label="Folha de poses dos três personagens"></canvas></div>
+  </section>
+
+  <section>
+    <h2>No tamanho do jogo</h2>
+    <p>Escala real numa tela de 960×540, em cima dos blocos de 16 unidades da fase. Serve para ver se a silhueta, o capacete e as cores ainda leem pequenos e contra o cenário roxo.</p>
+    <div class="game"><canvas id="game" aria-label="Os três personagens no tamanho do jogo"></canvas></div>
+  </section>
+</div>
+
+<script src="personagens.js"></script>
+<script>
+const INFO = {
+  gabriel: { role: 'Herói · patinador', type: 'Punk-pop', words: 'Corajoso, brincalhão, acelerado',
+    quote: '“Bora que o asfalto tá afinado!”',
+    look: 'Capacete creme com crista de moicano laranja de borracha (o moicano dele virou parte do capacete), barba curta, jaqueta verde-limão larga com bottom de raio, camiseta com palheta e mini violão nas costas.',
+    gear: 'Capacete com jugular, joelheiras, cotoveleiras e munhequeiras pretas com faixa laranja.',
+    pal: ['helm', 'crest', 'top', 'tee', 'leg', 'boot', 'wheel', 'line'] },
+  lua: { role: 'Heroína · patinadora', type: 'Grunge-pop', words: 'Destemida, debochada, gentil',
+    quote: '“Segura esse riff!”',
+    look: 'Capacete menta com adesivo de raio, marias-chiquinhas com pontas rosa que balançam no ritmo, brinco de palheta, camiseta de banda amarela, flanela xadrez amarrada na cintura e meia-calça listrada.',
+    gear: 'Capacete com jugular, joelheiras, cotoveleiras e munhequeiras roxas com faixa menta.',
+    pal: ['helm', 'hair', 'tips', 'top', 'flan', 'short', 'pad', 'wheel'] },
+  merlin: { role: 'Mentor · professor', type: 'Rock clássico', words: 'Paciente, zen, animado',
+    quote: '“Joelho dobrado, coração ligado!”',
+    look: 'Bem mais alto e magro. Cachos compridos saindo do capacete laranja, bandana azul estampada por baixo da aba, barba curta, camiseta preta com a rodinha e o “V” apontando com dois dedos.',
+    gear: 'Capacete laranja (combina com os patins), joelheiras, cotoveleiras e munhequeiras pretas com faixa laranja.',
+    pal: ['helm', 'band', 'hair', 'top', 'leg', 'boot', 'wheel', 'skin'] },
+};
+const ORDER = ['gabriel', 'lua', 'merlin'], POSE_KEYS = Object.keys(POSES);
+const VIS_H = { gabriel: 24.5, lua: 24, merlin: 37 };   // altura visual aproximada (unidades), para enquadrar
+const state = { pose: 'idle', light: false, paused: false, t: 0 };
+try { const s = JSON.parse(localStorage.getItem('elenco.v2') || '{}'); if (POSES[s.pose]) state.pose = s.pose; state.light = !!s.light; if (s.line === false) ST.line = false; } catch (e) {}
+const save = () => { try { localStorage.setItem('elenco.v2', JSON.stringify({ pose: state.pose, light: state.light, line: ST.line })); } catch (e) {} };
+
+// ----- barra
+const posesEl = document.getElementById('poses');
+for (const k of POSE_KEYS) { const b = document.createElement('button'); b.type = 'button'; b.textContent = POSES[k].label; b.dataset.k = k; b.addEventListener('click', () => { state.pose = k; syncBar(); save(); }); posesEl.appendChild(b); }
+const tLine = document.getElementById('tLine'), tBg = document.getElementById('tBg'), tPause = document.getElementById('tPause');
+tLine.onclick = () => { ST.line = !ST.line; syncBar(); save(); };
+tBg.onclick = () => { state.light = !state.light; syncBar(); save(); };
+tPause.onclick = () => { state.paused = !state.paused; syncBar(); };
+function syncBar() {
+  for (const b of posesEl.children) b.setAttribute('aria-pressed', b.dataset.k === state.pose ? 'true' : 'false');
+  tLine.setAttribute('aria-pressed', ST.line ? 'true' : 'false'); tBg.setAttribute('aria-pressed', state.light ? 'true' : 'false'); tPause.setAttribute('aria-pressed', state.paused ? 'true' : 'false');
+  tPause.textContent = state.paused ? 'Continuar' : 'Pausar';
+}
+
+// ----- cartões
+const cardsEl = document.getElementById('cards'), cardCv = {};
+for (const id of ORDER) {
+  const C = CAST[id], I = INFO[id], el = document.createElement('article'); el.className = 'card';
+  const cv = document.createElement('canvas'); cv.setAttribute('aria-label', C.name + ' animado na pose escolhida'); cardCv[id] = cv;
+  const sw = I.pal.map(k => `<span class="sw"><i style="background:${C.pal[k]}"></i>${C.pal[k].slice(1)}</span>`).join('');
+  el.innerHTML = `<div class="info"><div class="nm"><h3>${C.name}</h3><span class="chip">${I.role}</span></div>
+    <p class="quote">${I.quote}</p>
+    <dl><dt>Tipo</dt><dd>${I.type}</dd><dt>Jeito</dt><dd>${I.words}</dd><dt>Visual</dt><dd>${I.look}</dd><dt>Proteção</dt><dd>${I.gear}</dd><dt>Paleta</dt><dd><div class="pal">${sw}</div></dd></dl></div>`;
+  el.prepend(cv); cardsEl.appendChild(el);
+}
+
+// ----- utilidades de canvas
+function fit(cv, cssW, cssH) {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+  if (cssW) cv.style.width = cssW + 'px'; if (cssH) cv.style.height = cssH + 'px';
+  const r = cv.getBoundingClientRect(), w = Math.round(r.width * dpr), h = Math.round(r.height * dpr);
+  if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+  return { w: r.width, h: r.height, dpr };
+}
+function backdrop(g, w, h, gy, light) {
+  const gr = g.createLinearGradient(0, 0, 0, gy);
+  if (light) { gr.addColorStop(0, '#fff3dc'); gr.addColorStop(1, '#ffd9e8'); } else { gr.addColorStop(0, '#2a1850'); gr.addColorStop(1, '#130c26'); }
+  g.fillStyle = gr; g.fillRect(0, 0, w, gy);
+  g.fillStyle = light ? '#c7b6ee' : '#2b2142'; g.fillRect(0, gy, w, h - gy);
+  g.fillStyle = light ? '#a996dc' : '#3c3058'; g.fillRect(0, gy, w, 3);
+  g.fillStyle = light ? 'rgba(255,255,255,.5)' : 'rgba(255,255,255,.06)';
+  for (let x = 20; x < w; x += 70) g.fillRect(x, gy + (h - gy) * 0.5, 34, 3);   // faixa da rua
+}
+const shadowCol = () => state.light ? 'rgba(80,50,130,0.25)' : 'rgba(5,2,12,0.45)';
+
+function drawCards() {
+  for (const id of ORDER) {
+    const cv = cardCv[id], { w, h, dpr } = fit(cv), g = cv.getContext('2d');
+    g.setTransform(dpr, 0, 0, dpr, 0, 0); const gy = h * 0.86; backdrop(g, w, h, gy, state.light);
+    const s = h * 0.64 / VIS_H[id];
+    g.save(); g.translate(w * (state.pose === 'slide' ? 0.34 : 0.46), gy); g.scale(s, s);
+    drawChar(g, CAST[id], state.pose, state.t, { shadow: shadowCol() }); g.restore();
+  }
+}
+function drawSheet() {
+  const cell = 150, rowH = 200, cv = document.getElementById('sheet');
+  const { dpr } = fit(cv, cell * POSE_KEYS.length, rowH * ORDER.length + 30), g = cv.getContext('2d'), W = cell * POSE_KEYS.length;
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.fillStyle = state.light ? '#fff3dc' : '#181226'; g.fillRect(0, 0, W, rowH * ORDER.length + 30);
+  g.font = '800 13px "Barlow Condensed", sans-serif'; g.textAlign = 'center'; g.fillStyle = state.light ? '#5a4a80' : '#a79fbc';
+  POSE_KEYS.forEach((k, i) => g.fillText(POSES[k].label.toUpperCase(), i * cell + cell / 2, 20));
+  ORDER.forEach((id, r) => {
+    const gy = 30 + r * rowH + rowH * 0.86, s = rowH * 0.52 / VIS_H[id];
+    g.fillStyle = state.light ? '#e8d9f7' : '#211a33'; g.fillRect(0, gy, W, 2);
+    POSE_KEYS.forEach((k, i) => {
+      g.save(); g.beginPath(); g.rect(i * cell, 30 + r * rowH, cell, rowH); g.clip();
+      g.translate(i * cell + cell * (k === 'slide' ? 0.32 : 0.46), gy); g.scale(s, s);
+      drawChar(g, CAST[id], k, state.t + i * 0.37, { shadow: shadowCol() }); g.restore();
+    });
+  });
+}
+function drawGame() {
+  const cv = document.getElementById('game'), Wc = 960, Hc = 300, { dpr } = fit(cv, Wc, Hc), g = cv.getContext('2d');
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const K = 540 / 114, gy = Hc - 58;   // K = pixels por unidade numa tela 960×540
+  const gr = g.createLinearGradient(0, 0, 0, gy); gr.addColorStop(0, '#3a2470'); gr.addColorStop(1, '#1a1030'); g.fillStyle = gr; g.fillRect(0, 0, Wc, Hc);
+  // prédios do fundo
+  g.fillStyle = '#25174a'; for (let i = 0; i < 9; i++) { const bw = 70 + (i * 37) % 50, bh = 60 + (i * 53) % 90; g.fillRect(i * 112 - 10, gy - bh, bw, bh); }
+  g.fillStyle = 'rgba(255,190,90,.35)'; for (let i = 0; i < 40; i++) g.fillRect((i * 97) % 940 + 6, gy - 20 - (i * 31) % 120, 6, 8);
+  // chão em blocos de 16 unidades
+  const tile = 16 * K;
+  for (let x = 0; x < Wc; x += tile) { g.fillStyle = '#4a3a6a'; g.fillRect(x, gy, tile - 1, Hc - gy); g.fillStyle = '#6a5a90'; g.fillRect(x, gy, tile - 1, 4); }
+  const slots = [[200, 'gabriel'], [420, 'lua'], [660, 'merlin']];
+  const pose = state.pose;
+  for (const [x, id] of slots) { g.save(); g.translate(x, gy); g.scale(K, K); drawChar(g, CAST[id], pose, state.t, { shadow: 'rgba(5,2,12,0.45)' }); g.restore(); }
+  g.font = '800 13px "Barlow Condensed", sans-serif'; g.fillStyle = 'rgba(242,238,250,.7)'; g.textAlign = 'left';
+  g.fillText('BLOCO = 16 UNIDADES · ' + POSES[pose].label.toUpperCase(), 12, 20);
+}
+
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  if (!state.paused) state.t += dt;
+  drawCards(); drawSheet(); drawGame();
+  requestAnimationFrame(frame);
+}
+try { if (matchMedia('(prefers-reduced-motion: reduce)').matches) state.paused = true; } catch (e) {}
+syncBar(); requestAnimationFrame(frame);
+</script>
