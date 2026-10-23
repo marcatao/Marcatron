@@ -30,9 +30,9 @@ h2{font:800 24px/1.1 var(--f-ui);letter-spacing:.03em;margin:0;text-transform:up
 .tog[aria-pressed="true"]{border-color:var(--orange);color:var(--orange)}
 button:focus-visible{outline:2px solid var(--pink);outline-offset:2px}
 .opts{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px}
 .card{background:var(--panel);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;min-width:0}
-.card canvas{display:block;width:100%;aspect-ratio:4/4.3;max-width:100%}
+.card canvas{display:block;width:100%;aspect-ratio:4/5;max-width:100%}
 .info{padding:14px 16px 18px;display:flex;flex-direction:column;gap:10px}
 .nm{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
 .nm h3{font:400 28px/1 var(--f-disp);margin:0}
@@ -55,16 +55,16 @@ section>p{color:var(--dim);margin:0;max-width:72ch}
 
 <div class="wrap">
   <header>
-    <span class="eyebrow">Uhuu Rollers · elenco v2 · rascunho 2</span>
+    <span class="eyebrow">Uhuu Rollers · elenco v3 · rascunho 3</span>
     <h1>Os patinadores</h1>
-    <p class="lede">Refeitos a partir das três referências, nas proporções do rascunho 1. Capacete com chamas, óculos de proteção, brim com spikes e patches, camiseta de banda, cinto com corrente, calça cargo e patins com rodas que brilham. Cada um partiu de uma referência: o Gabriel da 1, a Lua da 2 e o Merlin da 3.</p>
+    <p class="lede">Agora são as próprias ilustrações de referência, recortadas em 14 peças (cabeça, tronco, bacia, braços, antebraços, coxas, canelas e patins) e animadas por um esqueleto. As juntas ficam escondidas debaixo das cotoveleiras, joelheiras, gola e cós. Como as ilustrações são de frente, o corpo trabalha como um patinador visto de frente: empurra para o lado, joga o peso na perna que desliza e agacha dobrando os joelhos.</p>
   </header>
 
   <div class="bar" role="toolbar" aria-label="Controles da prancha">
     <div class="seg" id="poses" aria-label="Pose"></div>
     <div class="opts">
-      <button class="tog" id="tLine" type="button" aria-pressed="true">Contorno</button>
       <button class="tog" id="tBg" type="button" aria-pressed="false">Fundo claro</button>
+      <button class="tog" id="tSlow" type="button" aria-pressed="false">Câmera lenta</button>
       <button class="tog" id="tPause" type="button" aria-pressed="false">Pausar</button>
     </div>
   </div>
@@ -73,68 +73,50 @@ section>p{color:var(--dim);margin:0;max-width:72ch}
 
   <section>
     <h2>Folha de poses</h2>
-    <p>As sete poses de cada um, animadas ao mesmo tempo. Cada linha tem a própria escala: o Merlin aparece menor aqui porque é bem mais alto.</p>
+    <p>As sete poses de cada um, animadas ao mesmo tempo.</p>
     <div class="sheet"><canvas id="sheet" aria-label="Folha de poses dos três personagens"></canvas></div>
   </section>
 
   <section>
     <h2>No tamanho do jogo</h2>
-    <p>Escala real numa tela de 960×540, em cima dos blocos de 16 unidades da fase. Serve para ver se a silhueta, o capacete e as cores ainda leem pequenos e contra o cenário roxo.</p>
+    <p>Escala de uma tela de 960×540, com cada patinador da altura de dois blocos de 16 unidades. Serve para ver se a ilustração ainda lê bem pequena e contra o cenário roxo.</p>
     <div class="game"><canvas id="game" aria-label="Os três personagens no tamanho do jogo"></canvas></div>
   </section>
 </div>
 
-<script src="personagens.js"></script>
+<script src="rig.js"></script>
 <script>
 const INFO = {
-  gabriel: { role: 'Herói · patinador', type: 'Punk', words: 'Corajoso, brincalhão, acelerado', ref: 'referência 1',
-    quote: '“Bora que o asfalto tá afinado!”',
-    look: 'Capacete preto com chamas vermelhas e óculos de proteção fumê, cabelo preto espetado saindo do capacete, sorrisão. Jaqueta de brim preta com spikes nos ombros e patches, camiseta com guitarra, cinto com pochete e corrente, calça cargo verde-oliva.',
-    gear: 'Capacete, óculos de proteção, joelheiras e cotoveleiras pretas, munhequeiras de tachas e luva sem dedo. Patins pretos com rodas vermelhas que brilham.',
-    pal: ['helm', 'flame', 'top', 'tee', 'leg', 'boot', 'wheel', 'line'] },
-  lua: { role: 'Heroína · patinadora', type: 'Punk-grunge', words: 'Destemida, debochada, gentil', ref: 'referência 2',
-    quote: '“Segura esse riff!”',
-    look: 'Capacete preto com chamas laranja e óculos de lente clara, cabelo azul-marinho espetado com marias-chiquinhas de pontas ciano, sorriso de canto. Colete de brim preto sobre camiseta vermelha com guitarra, colar de raio, mochila camuflada, jeans preto rasgado.',
-    gear: 'Capacete, óculos de proteção, joelheiras e cotoveleiras pretas, munhequeiras de tachas e luva sem dedo. Patins pretos com cadarço e rodas ciano que brilham.',
-    pal: ['helm', 'flame', 'hair', 'tips', 'top', 'tee', 'bag', 'wheel'] },
-  merlin: { role: 'Mentor · professor', type: 'Rock clássico', words: 'Paciente, zen, animado', ref: 'referência 3',
-    quote: '“Joelho dobrado, coração ligado!”',
-    look: 'Bem mais alto e magro, com os cachos, a bandana azul e a barba de sempre. Capacete preto com chamas azuis e o óculos levantado, colete jeans desfiado sobre camiseta preta de caveira, colar de palheta, calça cargo cáqui com tira na coxa e mosquetão no cinto. Comemora com o “V” de dois dedos.',
-    gear: 'Capacete, óculos de proteção, joelheiras e cotoveleiras pretas, munhequeiras de tachas e luva sem dedo. Patins pretos com detalhe vermelho e rodas azuis que brilham.',
-    pal: ['helm', 'flame', 'band', 'hair', 'top', 'tee', 'leg', 'wheel'] },
+  1: { name: 'Patinador 1', ref: 'referência 1', look: 'Capacete preto com chamas vermelhas, óculos de proteção, cabelo preto espetado e sorrisão. Jaqueta de brim preta com spikes e patches, camiseta com guitarra, cinto com pochetes e corrente, calça cargo verde-oliva.', wheels: 'Rodas vermelhas.' },
+  2: { name: 'Patinador 2', ref: 'referência 2', look: 'Capacete com chamas laranja, óculos de lente clara, cabelo azul espetado. Colete preto sobre camiseta vermelha com guitarra, colar de raio, mochila camuflada, jeans preto rasgado.', wheels: 'Cadarço e rodas ciano.' },
+  3: { name: 'Patinador 3', ref: 'referência 3', look: 'Capacete preto com chamas vermelhas, cabelo preto liso, sorriso tranquilo. Colete jeans desfiado sobre camiseta de caveira, corrente com palheta, calça cargo cáqui com tira na coxa e mosquetão.', wheels: 'Patins preto e vermelho, rodas azuis.' },
 };
-const ORDER = ['gabriel', 'lua', 'merlin'], POSE_KEYS = Object.keys(POSES);
-const VIS_H = { gabriel: 24.5, lua: 24, merlin: 37 };   // altura visual aproximada (unidades), para enquadrar
-const state = { pose: 'idle', light: false, paused: false, t: 0 };
-try { const s = JSON.parse(localStorage.getItem('elenco.v2') || '{}'); if (POSES[s.pose]) state.pose = s.pose; state.light = !!s.light; if (s.line === false) ST.line = false; } catch (e) {}
-const save = () => { try { localStorage.setItem('elenco.v2', JSON.stringify({ pose: state.pose, light: state.light, line: ST.line })); } catch (e) {} };
+const ORDER = ['1', '2', '3'], POSE_KEYS = Object.keys(POSES);
+const state = { pose: 'idle', light: false, paused: false, slow: false, t: 0 };
+try { const s = JSON.parse(localStorage.getItem('elenco.v3') || '{}'); if (POSES[s.pose]) state.pose = s.pose; state.light = !!s.light; } catch (e) {}
+const save = () => { try { localStorage.setItem('elenco.v3', JSON.stringify({ pose: state.pose, light: state.light })); } catch (e) {} };
 
-// ----- barra
 const posesEl = document.getElementById('poses');
 for (const k of POSE_KEYS) { const b = document.createElement('button'); b.type = 'button'; b.textContent = POSES[k].label; b.dataset.k = k; b.addEventListener('click', () => { state.pose = k; syncBar(); save(); }); posesEl.appendChild(b); }
-const tLine = document.getElementById('tLine'), tBg = document.getElementById('tBg'), tPause = document.getElementById('tPause');
-tLine.onclick = () => { ST.line = !ST.line; syncBar(); save(); };
+const tBg = document.getElementById('tBg'), tPause = document.getElementById('tPause'), tSlow = document.getElementById('tSlow');
 tBg.onclick = () => { state.light = !state.light; syncBar(); save(); };
 tPause.onclick = () => { state.paused = !state.paused; syncBar(); };
+tSlow.onclick = () => { state.slow = !state.slow; syncBar(); };
 function syncBar() {
   for (const b of posesEl.children) b.setAttribute('aria-pressed', b.dataset.k === state.pose ? 'true' : 'false');
-  tLine.setAttribute('aria-pressed', ST.line ? 'true' : 'false'); tBg.setAttribute('aria-pressed', state.light ? 'true' : 'false'); tPause.setAttribute('aria-pressed', state.paused ? 'true' : 'false');
+  tBg.setAttribute('aria-pressed', state.light ? 'true' : 'false'); tPause.setAttribute('aria-pressed', state.paused ? 'true' : 'false'); tSlow.setAttribute('aria-pressed', state.slow ? 'true' : 'false');
   tPause.textContent = state.paused ? 'Continuar' : 'Pausar';
 }
 
-// ----- cartões
 const cardsEl = document.getElementById('cards'), cardCv = {};
 for (const id of ORDER) {
-  const C = CAST[id], I = INFO[id], el = document.createElement('article'); el.className = 'card';
-  const cv = document.createElement('canvas'); cv.setAttribute('aria-label', C.name + ' animado na pose escolhida'); cardCv[id] = cv;
-  const sw = I.pal.map(k => `<span class="sw"><i style="background:${C.pal[k]}"></i>${C.pal[k].slice(1)}</span>`).join('');
-  el.innerHTML = `<div class="info"><div class="nm"><h3>${C.name}</h3><span class="chip">${I.role}</span></div>
-    <p class="quote">${I.quote}</p>
-    <dl><dt>Base</dt><dd>${I.ref}</dd><dt>Tipo</dt><dd>${I.type}</dd><dt>Jeito</dt><dd>${I.words}</dd><dt>Visual</dt><dd>${I.look}</dd><dt>Proteção</dt><dd>${I.gear}</dd><dt>Paleta</dt><dd><div class="pal">${sw}</div></dd></dl></div>`;
+  const I = INFO[id], el = document.createElement('article'); el.className = 'card';
+  const cv = document.createElement('canvas'); cv.setAttribute('aria-label', I.name + ' animado na pose escolhida'); cardCv[id] = cv;
+  el.innerHTML = `<div class="info"><div class="nm"><h3>${I.name}</h3><span class="chip">${I.ref}</span></div>
+    <dl><dt>Visual</dt><dd>${I.look}</dd><dt>Proteção</dt><dd>Capacete, óculos de proteção, cotoveleiras, joelheiras e luva sem dedo com munhequeira de tachas. ${I.wheels}</dd></dl></div>`;
   el.prepend(cv); cardsEl.appendChild(el);
 }
 
-// ----- utilidades de canvas
 function fit(cv, cssW, cssH) {
   const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
   if (cssW) cv.style.width = cssW + 'px'; if (cssH) cv.style.height = cssH + 'px';
@@ -144,66 +126,61 @@ function fit(cv, cssW, cssH) {
 }
 function backdrop(g, w, h, gy, light) {
   const gr = g.createLinearGradient(0, 0, 0, gy);
-  if (light) { gr.addColorStop(0, '#fff3dc'); gr.addColorStop(1, '#ffd9e8'); } else { gr.addColorStop(0, '#2a1850'); gr.addColorStop(1, '#130c26'); }
+  if (light) { gr.addColorStop(0, '#f3eef9'); gr.addColorStop(1, '#ddd3ec'); } else { gr.addColorStop(0, '#2a1850'); gr.addColorStop(1, '#130c26'); }
   g.fillStyle = gr; g.fillRect(0, 0, w, gy);
-  g.fillStyle = light ? '#c7b6ee' : '#2b2142'; g.fillRect(0, gy, w, h - gy);
-  g.fillStyle = light ? '#a996dc' : '#3c3058'; g.fillRect(0, gy, w, 3);
-  g.fillStyle = light ? 'rgba(255,255,255,.5)' : 'rgba(255,255,255,.06)';
-  for (let x = 20; x < w; x += 70) g.fillRect(x, gy + (h - gy) * 0.5, 34, 3);   // faixa da rua
+  g.fillStyle = light ? '#bcb0d6' : '#2b2142'; g.fillRect(0, gy, w, h - gy);
+  g.fillStyle = light ? '#a597c8' : '#3c3058'; g.fillRect(0, gy, w, 3);
 }
-const shadowCol = () => state.light ? 'rgba(80,50,130,0.25)' : 'rgba(5,2,12,0.45)';
+const shadowCol = () => state.light ? 'rgba(60,40,100,0.25)' : 'rgba(5,2,12,0.5)';
+const CHAR_H = 1000;   // altura da ilustração (px)
 
 function drawCards() {
   for (const id of ORDER) {
     const cv = cardCv[id], { w, h, dpr } = fit(cv), g = cv.getContext('2d');
-    g.setTransform(dpr, 0, 0, dpr, 0, 0); const gy = h * 0.86; backdrop(g, w, h, gy, state.light);
-    const s = h * 0.64 / VIS_H[id];
-    g.save(); g.translate(w * (state.pose === 'slide' ? 0.34 : 0.46), gy); g.scale(s, s);
-    drawChar(g, CAST[id], state.pose, state.t, { shadow: shadowCol() }); g.restore();
+    g.setTransform(dpr, 0, 0, dpr, 0, 0); const gy = h * 0.92; backdrop(g, w, h, gy, state.light);
+    const s = h * 0.7 / CHAR_H;
+    g.save(); g.translate(w * 0.5, gy); drawRig(g, id, state.pose, state.t, s, { shadow: shadowCol() }); g.restore();
   }
 }
 function drawSheet() {
-  const cell = 150, rowH = 200, cv = document.getElementById('sheet');
+  const cell = 170, rowH = 250, cv = document.getElementById('sheet');
   const { dpr } = fit(cv, cell * POSE_KEYS.length, rowH * ORDER.length + 30), g = cv.getContext('2d'), W = cell * POSE_KEYS.length;
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
-  g.fillStyle = state.light ? '#fff3dc' : '#181226'; g.fillRect(0, 0, W, rowH * ORDER.length + 30);
+  g.fillStyle = state.light ? '#f3eef9' : '#181226'; g.fillRect(0, 0, W, rowH * ORDER.length + 30);
   g.font = '800 13px "Barlow Condensed", sans-serif'; g.textAlign = 'center'; g.fillStyle = state.light ? '#5a4a80' : '#a79fbc';
   POSE_KEYS.forEach((k, i) => g.fillText(POSES[k].label.toUpperCase(), i * cell + cell / 2, 20));
   ORDER.forEach((id, r) => {
-    const gy = 30 + r * rowH + rowH * 0.86, s = rowH * 0.52 / VIS_H[id];
-    g.fillStyle = state.light ? '#e8d9f7' : '#211a33'; g.fillRect(0, gy, W, 2);
+    const gy = 30 + r * rowH + rowH * 0.94, s = rowH * 0.6 / CHAR_H;
+    g.fillStyle = state.light ? '#ddd3ec' : '#211a33'; g.fillRect(0, gy, W, 2);
     POSE_KEYS.forEach((k, i) => {
       g.save(); g.beginPath(); g.rect(i * cell, 30 + r * rowH, cell, rowH); g.clip();
-      g.translate(i * cell + cell * (k === 'slide' ? 0.32 : 0.46), gy); g.scale(s, s);
-      drawChar(g, CAST[id], k, state.t + i * 0.37, { shadow: shadowCol() }); g.restore();
+      g.translate(i * cell + cell / 2, gy); drawRig(g, id, k, state.t + i * 0.37, s, { shadow: shadowCol() }); g.restore();
     });
   });
 }
 function drawGame() {
   const cv = document.getElementById('game'), Wc = 960, Hc = 300, { dpr } = fit(cv, Wc, Hc), g = cv.getContext('2d');
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
-  const K = 540 / 114, gy = Hc - 58;   // K = pixels por unidade numa tela 960×540
+  const K = 540 / 114, gy = Hc - 58;
   const gr = g.createLinearGradient(0, 0, 0, gy); gr.addColorStop(0, '#3a2470'); gr.addColorStop(1, '#1a1030'); g.fillStyle = gr; g.fillRect(0, 0, Wc, Hc);
-  // prédios do fundo
   g.fillStyle = '#25174a'; for (let i = 0; i < 9; i++) { const bw = 70 + (i * 37) % 50, bh = 60 + (i * 53) % 90; g.fillRect(i * 112 - 10, gy - bh, bw, bh); }
   g.fillStyle = 'rgba(255,190,90,.35)'; for (let i = 0; i < 40; i++) g.fillRect((i * 97) % 940 + 6, gy - 20 - (i * 31) % 120, 6, 8);
-  // chão em blocos de 16 unidades
   const tile = 16 * K;
   for (let x = 0; x < Wc; x += tile) { g.fillStyle = '#4a3a6a'; g.fillRect(x, gy, tile - 1, Hc - gy); g.fillStyle = '#6a5a90'; g.fillRect(x, gy, tile - 1, 4); }
-  const slots = [[200, 'gabriel'], [420, 'lua'], [660, 'merlin']];
-  const pose = state.pose;
-  for (const [x, id] of slots) { g.save(); g.translate(x, gy); g.scale(K, K); drawChar(g, CAST[id], pose, state.t, { shadow: 'rgba(5,2,12,0.45)' }); g.restore(); }
+  const s = 32 * K / CHAR_H;   // dois blocos de altura
+  [[240, '1'], [480, '2'], [720, '3']].forEach(([x, id]) => { g.save(); g.translate(x, gy); drawRig(g, id, state.pose, state.t, s, { shadow: 'rgba(5,2,12,0.45)' }); g.restore(); });
   g.font = '800 13px "Barlow Condensed", sans-serif'; g.fillStyle = 'rgba(242,238,250,.7)'; g.textAlign = 'left';
-  g.fillText('BLOCO = 16 UNIDADES · ' + POSES[pose].label.toUpperCase(), 12, 20);
+  g.fillText('BLOCO = 16 UNIDADES · ' + POSES[state.pose].label.toUpperCase(), 12, 20);
 }
 
 let last = performance.now();
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
-  if (!state.paused) state.t += dt;
+  if (!state.paused) state.t += dt * (state.slow ? 0.25 : 1);
   drawCards(); drawSheet(); drawGame();
   requestAnimationFrame(frame);
 }
 try { if (matchMedia('(prefers-reduced-motion: reduce)').matches) state.paused = true; } catch (e) {}
-syncBar(); requestAnimationFrame(frame);
+syncBar();
+loadRig().then(() => requestAnimationFrame(frame));
 </script>

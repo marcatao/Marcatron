@@ -1,19 +1,19 @@
-# Elenco — Uhuu Rollers (v2, rascunho 2)
+# Elenco — Uhuu Rollers (v3, rascunho 3)
 
-Estilo: rascunho 2, feito a partir de três referências de patinadores punk (capacete com chamas, óculos de proteção,
-brim com spikes e patches, camiseta de banda, cinto com corrente, calça cargo, luva sem dedo e rodas que brilham), nas
-proporções do rascunho 1. Vetorial com contorno escuro e uma sombra dura por peça. O código é `personagens.js`
-(`drawChar(g, CAST.<id>, pose, t)`), na mesma escala de unidades do jogo (bloco = 16).
+Os personagens são as próprias ilustrações de referência (`referencias/1.webp`, `2.webp`, `3.webp`), recortadas em
+14 peças e animadas por esqueleto (animação de recorte, "cutout").
 
-| Personagem | Papel | Tipo | Altura visual | Cor dominante |
-|---|---|---|---|---|
-| Gabriel Rock | herói (nome padrão do jogador) | Punk | ~24,5 un | preto + chamas vermelhas no capacete + rodas vermelhas (ref. 1) |
-| Lua Riff | heroína (patinadora) | Punk-grunge | ~24 un | preto e vermelho + chamas laranja + cabelo azul com pontas ciano (ref. 2) |
-| Merlin | mentor (professor do treino) | Rock clássico | ~37 un | colete jeans + calça cáqui + chamas e rodas azuis + bandana (ref. 3) |
+- `cut.py` + `rigcfg.py`: tiram o fundo, recortam as peças pelos polígonos de `rigcfg.py` e gravam
+  `sprites/p<n>-<peça>.webp` e `sprites/rig.json` (posição de cada peça e pivô de cada junta, em pixels da ilustração
+  1024×1024). Para refazer: `python3 cut.py` dentro desta pasta (precisa de Pillow, NumPy e SciPy).
+- `rig.js`: esqueleto, poses e desenho (`loadRig()` e depois `drawRig(g, id, pose, t, escala)`).
+- `index.html`: a prancha de avaliação.
 
-Poses: parado, remada, pulo, grab, powerslide, grind e comemoração (chifrinho do rock; no Merlin, o "V" apontando).
+Poses: parado, remada, pulo, grab, powerslide, grind e comemoração. As ilustrações são de frente, então a remada é a
+de um patinador visto de frente (empurra para o lado e joga o peso na perna que desliza).
 
-Hitbox: os heróis continuam com a hitbox do baixinho (12×14); o desenho fica ~15% acima da altura antiga (~21 un).
-
-Sons por personagem: pulo, aterrissagem, powerslide e grind já existem no jogo e servem para os três. Faltam um bordão
-curto falado para cada um e um "uhuu" de comemoração da Lua.
+| Peça | Referência | Visual |
+|---|---|---|
+| Patinador 1 | 1 | capacete preto com chamas vermelhas, óculos, jaqueta de brim preta com spikes, calça cargo oliva, rodas vermelhas |
+| Patinador 2 | 2 | capacete com chamas laranja, cabelo azul, colete preto, camiseta vermelha, mochila camuflada, rodas ciano |
+| Patinador 3 | 3 | capacete com chamas vermelhas, colete jeans desfiado, camiseta de caveira, calça cargo cáqui, rodas azuis |
