@@ -55,9 +55,9 @@ section>p{color:var(--dim);margin:0;max-width:72ch}
 
 <div class="wrap">
   <header>
-    <span class="eyebrow">Uhuu Rollers · elenco v2 · rascunho 1</span>
+    <span class="eyebrow">Uhuu Rollers · elenco v2 · rascunho 2</span>
     <h1>Os patinadores</h1>
-    <p class="lede">Remodelagem do Gabriel Rock e do Merlin, e a estreia da Lua Riff. Formas chapadas, uma sombra dura por peça, membros de macarrão e cores de bala, com o rock nos detalhes: crista de moicano no capacete, palhetas, raios e flanela. Todo mundo de capacete, joelheira, cotoveleira e munhequeira.</p>
+    <p class="lede">Refeitos a partir das três referências, nas proporções do rascunho 1. Capacete com chamas, óculos de proteção, brim com spikes e patches, camiseta de banda, cinto com corrente, calça cargo e patins com rodas que brilham. Cada um partiu de uma referência: o Gabriel da 1, a Lua da 2 e o Merlin da 3.</p>
   </header>
 
   <div class="bar" role="toolbar" aria-label="Controles da prancha">
@@ -87,21 +87,21 @@ section>p{color:var(--dim);margin:0;max-width:72ch}
 <script src="personagens.js"></script>
 <script>
 const INFO = {
-  gabriel: { role: 'Herói · patinador', type: 'Punk-pop', words: 'Corajoso, brincalhão, acelerado',
+  gabriel: { role: 'Herói · patinador', type: 'Punk', words: 'Corajoso, brincalhão, acelerado', ref: 'referência 1',
     quote: '“Bora que o asfalto tá afinado!”',
-    look: 'Capacete creme com crista de moicano laranja de borracha (o moicano dele virou parte do capacete), barba curta, jaqueta verde-limão larga com bottom de raio, camiseta com palheta e mini violão nas costas.',
-    gear: 'Capacete com jugular, joelheiras, cotoveleiras e munhequeiras pretas com faixa laranja.',
-    pal: ['helm', 'crest', 'top', 'tee', 'leg', 'boot', 'wheel', 'line'] },
-  lua: { role: 'Heroína · patinadora', type: 'Grunge-pop', words: 'Destemida, debochada, gentil',
+    look: 'Capacete preto com chamas vermelhas e óculos de proteção fumê, cabelo preto espetado saindo do capacete, sorrisão. Jaqueta de brim preta com spikes nos ombros e patches, camiseta com guitarra, cinto com pochete e corrente, calça cargo verde-oliva.',
+    gear: 'Capacete, óculos de proteção, joelheiras e cotoveleiras pretas, munhequeiras de tachas e luva sem dedo. Patins pretos com rodas vermelhas que brilham.',
+    pal: ['helm', 'flame', 'top', 'tee', 'leg', 'boot', 'wheel', 'line'] },
+  lua: { role: 'Heroína · patinadora', type: 'Punk-grunge', words: 'Destemida, debochada, gentil', ref: 'referência 2',
     quote: '“Segura esse riff!”',
-    look: 'Capacete menta com adesivo de raio, marias-chiquinhas com pontas rosa que balançam no ritmo, brinco de palheta, camiseta de banda amarela, flanela xadrez amarrada na cintura e meia-calça listrada.',
-    gear: 'Capacete com jugular, joelheiras, cotoveleiras e munhequeiras roxas com faixa menta.',
-    pal: ['helm', 'hair', 'tips', 'top', 'flan', 'short', 'pad', 'wheel'] },
-  merlin: { role: 'Mentor · professor', type: 'Rock clássico', words: 'Paciente, zen, animado',
+    look: 'Capacete preto com chamas laranja e óculos de lente clara, cabelo azul-marinho espetado com marias-chiquinhas de pontas ciano, sorriso de canto. Colete de brim preto sobre camiseta vermelha com guitarra, colar de raio, mochila camuflada, jeans preto rasgado.',
+    gear: 'Capacete, óculos de proteção, joelheiras e cotoveleiras pretas, munhequeiras de tachas e luva sem dedo. Patins pretos com cadarço e rodas ciano que brilham.',
+    pal: ['helm', 'flame', 'hair', 'tips', 'top', 'tee', 'bag', 'wheel'] },
+  merlin: { role: 'Mentor · professor', type: 'Rock clássico', words: 'Paciente, zen, animado', ref: 'referência 3',
     quote: '“Joelho dobrado, coração ligado!”',
-    look: 'Bem mais alto e magro. Cachos compridos saindo do capacete laranja, bandana azul estampada por baixo da aba, barba curta, camiseta preta com a rodinha e o “V” apontando com dois dedos.',
-    gear: 'Capacete laranja (combina com os patins), joelheiras, cotoveleiras e munhequeiras pretas com faixa laranja.',
-    pal: ['helm', 'band', 'hair', 'top', 'leg', 'boot', 'wheel', 'skin'] },
+    look: 'Bem mais alto e magro, com os cachos, a bandana azul e a barba de sempre. Capacete preto com chamas azuis e o óculos levantado, colete jeans desfiado sobre camiseta preta de caveira, colar de palheta, calça cargo cáqui com tira na coxa e mosquetão no cinto. Comemora com o “V” de dois dedos.',
+    gear: 'Capacete, óculos de proteção, joelheiras e cotoveleiras pretas, munhequeiras de tachas e luva sem dedo. Patins pretos com detalhe vermelho e rodas azuis que brilham.',
+    pal: ['helm', 'flame', 'band', 'hair', 'top', 'tee', 'leg', 'wheel'] },
 };
 const ORDER = ['gabriel', 'lua', 'merlin'], POSE_KEYS = Object.keys(POSES);
 const VIS_H = { gabriel: 24.5, lua: 24, merlin: 37 };   // altura visual aproximada (unidades), para enquadrar
@@ -130,7 +130,7 @@ for (const id of ORDER) {
   const sw = I.pal.map(k => `<span class="sw"><i style="background:${C.pal[k]}"></i>${C.pal[k].slice(1)}</span>`).join('');
   el.innerHTML = `<div class="info"><div class="nm"><h3>${C.name}</h3><span class="chip">${I.role}</span></div>
     <p class="quote">${I.quote}</p>
-    <dl><dt>Tipo</dt><dd>${I.type}</dd><dt>Jeito</dt><dd>${I.words}</dd><dt>Visual</dt><dd>${I.look}</dd><dt>Proteção</dt><dd>${I.gear}</dd><dt>Paleta</dt><dd><div class="pal">${sw}</div></dd></dl></div>`;
+    <dl><dt>Base</dt><dd>${I.ref}</dd><dt>Tipo</dt><dd>${I.type}</dd><dt>Jeito</dt><dd>${I.words}</dd><dt>Visual</dt><dd>${I.look}</dd><dt>Proteção</dt><dd>${I.gear}</dd><dt>Paleta</dt><dd><div class="pal">${sw}</div></dd></dl></div>`;
   el.prepend(cv); cardsEl.appendChild(el);
 }
 

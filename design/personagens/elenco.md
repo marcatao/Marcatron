@@ -1,15 +1,15 @@
-# Elenco — Uhuu Rollers (v2, rascunho 1)
+# Elenco — Uhuu Rollers (v2, rascunho 2)
 
-Estilo: vetorial "flat" (cores chapadas, uma sombra dura por peça, membros de macarrão, cabeça grande, olhos de feijão
-com brilho e bochechas coradas). O rock fica nos detalhes. Todo mundo patina de inline com capacete, joelheira,
-cotoveleira e munhequeira. O código é `personagens.js` (`drawChar(g, CAST.<id>, pose, t)`), na mesma escala de unidades
-do jogo (bloco = 16).
+Estilo: rascunho 2, feito a partir de três referências de patinadores punk (capacete com chamas, óculos de proteção,
+brim com spikes e patches, camiseta de banda, cinto com corrente, calça cargo, luva sem dedo e rodas que brilham), nas
+proporções do rascunho 1. Vetorial com contorno escuro e uma sombra dura por peça. O código é `personagens.js`
+(`drawChar(g, CAST.<id>, pose, t)`), na mesma escala de unidades do jogo (bloco = 16).
 
 | Personagem | Papel | Tipo | Altura visual | Cor dominante |
 |---|---|---|---|---|
-| Gabriel Rock | herói (nome padrão do jogador) | Punk-pop | ~24,5 un | verde-limão + crista laranja no capacete creme |
-| Lua Riff | heroína (patinadora) | Grunge-pop | ~24 un | amarelo + capacete menta + pontas rosa |
-| Merlin | mentor (professor do treino) | Rock clássico | ~37 un | preto + capacete e patins laranja + bandana azul |
+| Gabriel Rock | herói (nome padrão do jogador) | Punk | ~24,5 un | preto + chamas vermelhas no capacete + rodas vermelhas (ref. 1) |
+| Lua Riff | heroína (patinadora) | Punk-grunge | ~24 un | preto e vermelho + chamas laranja + cabelo azul com pontas ciano (ref. 2) |
+| Merlin | mentor (professor do treino) | Rock clássico | ~37 un | colete jeans + calça cáqui + chamas e rodas azuis + bandana (ref. 3) |
 
 Poses: parado, remada, pulo, grab, powerslide, grind e comemoração (chifrinho do rock; no Merlin, o "V" apontando).
 
