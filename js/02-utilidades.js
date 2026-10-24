@@ -10,7 +10,7 @@ const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { ret
 const REC_KEY = 'marcatron.recorde.1-1.v10';   // v10: o herói ficou mais 7% devagar, o recorde antigo não vale mais
 const SCORE_KEY = 'marcatron.pontos.1-1';   // v8.1: melhor pontuação de manobras
 // v8: o nome do personagem é perguntado ao abrir o jogo (o último fica salvo no aparelho e vem preenchido)
-const NAME_KEY = 'marcatron.nome', NAME_DEF = 'Gabriel Rock';
+const NAME_KEY = 'marcatron.nome', NAME_DEF = 'Patinador';
 const cleanName = s => String(s || '').replace(/[^\p{L}\p{N} ._'-]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 16);
 // v19: filtro de nomes — palavrões, termos sexuais e pejorativos viram "Maninho". Normaliza acentos, maiúsculas, números no
 // lugar de letras (p0rr4), letras repetidas (puuuta) e letras separadas (p.u.t.a). Raízes casam com o começo de cada palavra

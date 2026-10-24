@@ -1,6 +1,6 @@
 'use strict';
 // =================================================================== o herói (rig vetorial procedural)
-// Gabriel Rock — formas: 0 baixinho, 1 varapau (pepino), 2 marombado (batata-doce)
+// v20: o patinador da ficha Inline City (elenco Uhuu Rollers) — formas: 0 baixinho, 1 varapau (pepino), 2 marombado (batata-doce)
 // v4: escala ~10% maior que a hitbox (além do zoom da câmera); v5: mais 10%. Num teto baixo (túnel) ele se agacha
 const FORMP = [
   { leg: 3.4, legW: 2.6, hipW: 4.8, torso: 5.7, shW: 7.6, belly: 9.8, hrx: 5.1, hry: 4.5, neck: 0.0, arm: 4.2, armW: 2.3, boot: 1.0, scale: 1.045, gscale: 0.8 },
@@ -8,14 +8,17 @@ const FORMP = [
   { leg: 4.2, legW: 3.5, hipW: 6.8, torso: 7.2, shW: 12.8, belly: 11.2, hrx: 5.1, hry: 4.5, neck: 0.4, arm: 5.4, armW: 3.7, boot: 1.15, scale: 1.19, gscale: 0.85 },
 ];
 const heroVisH = P => (3.6 * P.boot + P.leg - 0.9 + P.torso + P.neck + P.hry * 1.85) * P.scale;   // altura visual (até o topo do cabelo), de patins
-const SKIN = '#f3c29b', SKIN_D = '#d9946c';
-// paleta do Gabriel Rock (v5: cores que destacam do cenário roxo/azul, das vitrines laranja e do mundo cinza)
+const SKIN = '#eaa878', SKIN_D = '#c97f52';   // v20: pele morena clara da ficha
+// v20: paleta da ficha Inline City — capacete preto fosco com coroa branca, camiseta branca larga com coroa preta, mochila
+// urbana preta, calça cargo preta, luva sem dedo preta e patins brancos com chassi preto e rodas creme
 const HP = {
-  hair: '#2a1d1c', hairTop: '#4d3732', beard: '#5a3a2c', beardTop: '#7c5541', beardBot: '#35211a', beardHi: 'rgba(240,200,160,0.38)',
-  jackTop: '#d2ff73', jack: '#8fe02a', jackBot: '#4f9a12', jackBuffTop: '#c4f560', jackL: '#f2ffd2',
-  shirt: '#f6f2ea', shirtBot: '#cfc8bd', print: '#ff6a10', trim: '#ff7a1a', cuff: '#1c1b23',
-  pants: '#55679b', boot: '#1a1920', sole: '#4a4552', lace: '#ff9a3c',
-  mohawk: '#ff7a1a', mohawk2: '#ffb347', patchA: '#1c1b23', patchANote: '#b6ff3b', patchB: '#ff7a1a',
+  hair: '#3b2418', hairTop: '#6a4128', hairHi: 'rgba(255,200,150,0.35)',
+  tee: '#fbfaf6', teeMid: '#ecebe6', teeBot: '#cfcdc6', crown: '#16151b', teeLine: 'rgba(40,36,50,0.22)',
+  pack: '#1d1c23', packTop: '#3a3843', packHi: 'rgba(255,255,255,0.18)', strap: '#141318',
+  pants: '#24232b', pantsHi: '#3a3944', pocket: '#1a1920',
+  glove: '#18171d', gloveHi: '#3a3944',
+  boot: '#f4f1ea', bootBot: '#cfcac0', bootLine: '#1b1a21', frame: '#1e1d24', wheel: '#efe0b8', hub: '#2b2a33',
+  trim: '#16151b', patchANote: '#b6ff3b',
   scarf: '#ff7a1a', scarf2: '#ff9a3c', band: '#ffd23f',
 };
 function formParams(a, b, t) {
@@ -63,32 +66,42 @@ function drawGuitar(g, x, y, rot, s, glowing) {
   if (glowing) { if (GLOW_DEFER) { const m = g.getTransform(); GLOW_DEFER.push([m.a * x + m.c * y + m.e, m.b * x + m.d * y + m.f, 9 * s * Math.hypot(m.a, m.b), 0.5 * glowing]); } else glow(g, x, y, 9 * s, '#b6ff3b', 0.5 * glowing); }
 }
 
-// --- patins inline agressivo (v7): bota preta com cano laranja, placa de grind verde-limão, chassi e 4 rodinhas
+// --- patins inline (v20, ficha Inline City): bota branca com cano e tiras pretas, chassi preto e 4 rodas creme
 // origem no chão, debaixo do meio do chassi; bico para +x
 function drawSkate(g, s, wr) {
   for (const wx of [-2.0, -0.68, 0.68, 2.0]) {
     const x = wx * s, y = -0.62 * s, r = 0.62 * s;
-    ell(g, x, y, r, r); fillStroke(g, '#efe6cc', 0.4);
-    ell(g, x, y, r * 0.48, r * 0.48); g.fillStyle = HP.trim; g.fill();
-    g.strokeStyle = 'rgba(60,30,10,0.55)'; g.lineWidth = 0.16 * s; g.beginPath(); g.moveTo(x + Math.cos(wr) * r * 0.46, y + Math.sin(wr) * r * 0.46); g.lineTo(x - Math.cos(wr) * r * 0.46, y - Math.sin(wr) * r * 0.46); g.stroke();
+    ell(g, x, y, r, r); fillStroke(g, HP.wheel, 0.4);
+    ell(g, x, y, r * 0.5, r * 0.5); g.fillStyle = HP.hub; g.fill();
+    g.strokeStyle = 'rgba(255,240,210,0.6)'; g.lineWidth = 0.14 * s; g.beginPath(); g.moveTo(x + Math.cos(wr) * r * 0.42, y + Math.sin(wr) * r * 0.42); g.lineTo(x - Math.cos(wr) * r * 0.42, y - Math.sin(wr) * r * 0.42); g.stroke();
   }
-  rr(g, -2.6 * s, -1.6 * s, 5.2 * s, 0.78 * s, 0.32 * s); fillStroke(g, '#2b2a33', 0.45);
-  g.fillStyle = 'rgba(255,255,255,0.18)'; g.fillRect(-2.4 * s, -1.52 * s, 4.8 * s, 0.18 * s);
-  // bota: calcanhar atrás, bico arredondado, cano subindo até o tornozelo
+  rr(g, -2.6 * s, -1.62 * s, 5.2 * s, 0.82 * s, 0.32 * s); fillStroke(g, HP.frame, 0.45);   // chassi
+  g.fillStyle = 'rgba(255,255,255,0.16)'; g.fillRect(-2.4 * s, -1.54 * s, 4.8 * s, 0.18 * s);
+  // bota branca: calcanhar atrás, bico arredondado, cano alto
   g.beginPath();
   g.moveTo(-2.15 * s, -1.55 * s); g.lineTo(2.2 * s, -1.55 * s);
   g.quadraticCurveTo(2.85 * s, -1.6 * s, 2.7 * s, -2.35 * s); g.quadraticCurveTo(2.45 * s, -3.0 * s, 1.0 * s, -3.15 * s);
   g.lineTo(0.95 * s, -4.05 * s); g.lineTo(-1.95 * s, -4.05 * s); g.quadraticCurveTo(-2.35 * s, -2.8 * s, -2.15 * s, -1.55 * s); g.closePath();
-  fillStroke(g, vgrad(g, -4.1 * s, -1.5 * s, [[0, '#34323d'], [1, HP.boot]]), 0.55);
-  g.fillStyle = 'rgba(255,255,255,0.2)'; ell(g, 1.75 * s, -2.55 * s, 0.75 * s, 0.32 * s, -0.25); g.fill();
-  rr(g, -0.85 * s, -2.15 * s, 1.9 * s, 0.62 * s, 0.25 * s); fillStroke(g, HP.jack, 0.35);           // placa de grind (soul plate)
-  g.strokeStyle = HP.jack; g.lineWidth = 0.42 * s; g.beginPath(); g.moveTo(0.05 * s, -3.1 * s); g.lineTo(1.25 * s, -2.55 * s); g.stroke();   // tira no peito do pé
-  rr(g, -2.05 * s, -4.55 * s, 3.15 * s, 1.15 * s, 0.4 * s); fillStroke(g, HP.trim, 0.45);            // cano (cuff)
-  rr(g, 0.25 * s, -4.3 * s, 0.75 * s, 0.6 * s, 0.15 * s); g.fillStyle = '#d7dbe2'; g.fill();          // fivela
+  fillStroke(g, vgrad(g, -4.1 * s, -1.5 * s, [[0, HP.boot], [1, HP.bootBot]]), 0.55);
+  g.fillStyle = HP.bootLine; rr(g, -2.12 * s, -2.05 * s, 4.75 * s, 0.42 * s, 0.2 * s); g.fill();          // faixa preta da sola
+  ell(g, -1.0 * s, -2.75 * s, 0.55 * s, 0.55 * s); fillStroke(g, HP.bootLine, 0.3);                     // rebite do tornozelo
+  g.strokeStyle = HP.bootLine; g.lineWidth = 0.4 * s; g.lineCap = 'round'; g.beginPath(); g.moveTo(0.15 * s, -3.05 * s); g.lineTo(1.35 * s, -2.55 * s); g.moveTo(0.4 * s, -3.6 * s); g.lineTo(1.0 * s, -3.4 * s); g.stroke();   // tiras
+  g.fillStyle = 'rgba(255,255,255,0.7)'; ell(g, 1.75 * s, -2.55 * s, 0.7 * s, 0.28 * s, -0.25); g.fill();
+  rr(g, -2.05 * s, -4.55 * s, 3.15 * s, 1.15 * s, 0.4 * s); fillStroke(g, vgrad(g, -4.55 * s, -3.4 * s, [[0, '#ffffff'], [1, HP.bootBot]]), 0.45);   // cano branco
+  g.fillStyle = HP.bootLine; g.fillRect(-2.0 * s, -4.1 * s, 3.05 * s, 0.34 * s);   // tira preta do cano
+  rr(g, 0.25 * s, -4.3 * s, 0.75 * s, 0.6 * s, 0.15 * s); g.fillStyle = '#d7dbe2'; g.fill();           // fivela
 }
 // --- capacete de skatista (v8): casco redondo preto brilhante, respiros, adesivos, friso e jugular.
 // Os espinhos laranja do moicano ficam presos no topo do casco e balançam com a mola do cabelo.
-const HELM = { top: '#5a5766', mid: '#2b2934', bot: '#111016', rim: '#4b4857', strap: '#2e2d37', vent: '#09080c' };
+const HELM = { top: '#4a4852', mid: '#26252c', bot: '#111015', rim: '#3d3b45', strap: '#2a2930', vent: '#09080c' };   // v20: preto fosco
+// coroa da marca Inline City (três pontas e a base), centrada em (x, y), largura ~2*s
+function crownGlyph(g, x, y, s, col) {
+  g.save(); g.translate(x, y); g.scale(s, s);
+  g.beginPath(); g.moveTo(-0.95, 0.42); g.lineTo(-1.0, -0.45); g.lineTo(-0.5, -0.05); g.lineTo(0, -0.65); g.lineTo(0.5, -0.05); g.lineTo(1.0, -0.45); g.lineTo(0.95, 0.42); g.closePath();
+  g.fillStyle = col; g.fill();
+  g.fillRect(-0.95, 0.52, 1.9, 0.22);
+  g.restore();
+}
 function drawHelmet(g, hx, hy, rx, ry, S, P) {
   const F = [hx + rx * 1.0, hy - ry * 0.5], C1 = [hx + rx * 1.12, hy - ry * 1.5], C2 = [hx - rx * 1.25, hy - ry * 1.66], B = [hx - rx * 1.12, hy + ry * 0.12];
   const bez = t => { const u = 1 - t; return [u * u * u * F[0] + 3 * u * u * t * C1[0] + 3 * u * t * t * C2[0] + t * t * t * B[0], u * u * u * F[1] + 3 * u * u * t * C1[1] + 3 * u * t * t * C2[1] + t * t * t * B[1]]; };
@@ -99,18 +112,6 @@ function drawHelmet(g, hx, hy, rx, ry, S, P) {
   g.strokeStyle = OUT; g.lineWidth = 0.8; g.stroke(); g.strokeStyle = HELM.strap; g.lineWidth = 0.46; g.stroke();
   g.strokeStyle = 'rgba(255,255,255,0.28)'; g.lineWidth = 0.14; g.stroke();
   rr(g, hx + rx * 0.1, hy + ry * 1.18, 0.9, 0.55, 0.2); fillStroke(g, '#c9ced6', 0.25);
-  // espinhos do moicano (atrás do casco: a base some dentro dele)
-  const SP = [[0.15, 2.5, 1.0], [0.27, 3.25, 1.12], [0.4, 3.75, 1.18], [0.53, 3.35, 1.12], [0.66, 2.65, 1.0]];
-  SP.forEach(([t, L, w], i) => {
-    const [px, py] = bez(t), [tx, ty] = dbez(t), tl = Math.hypot(tx, ty) || 1, ux = tx / tl, uy = ty / tl;
-    let nx = -uy, ny = ux; if (ny > 0) { nx = -nx; ny = -ny; }          // normal para fora (para cima)
-    const dx = nx - 0.32, dy = ny, dl = Math.hypot(dx, dy), k = 1 + (i === 2 ? 0.05 : 0);
-    const tipX = px + dx / dl * L * k + S.hairDX * 0.45, tipY = py + dy / dl * L * k + S.hairDY * 0.45;
-    g.beginPath(); g.moveTo(px - ux * w + nx * -0.6, py - uy * w + ny * -0.6); g.quadraticCurveTo(px - ux * w * 0.3 + (tipX - px) * 0.5, py - uy * w * 0.3 + (tipY - py) * 0.5, tipX, tipY);
-    g.quadraticCurveTo(px + ux * w * 0.3 + (tipX - px) * 0.45, py + uy * w * 0.3 + (tipY - py) * 0.45, px + ux * w + nx * -0.6, py + uy * w + ny * -0.6); g.closePath();
-    fillStroke(g, i % 2 ? HP.mohawk2 : HP.mohawk, 0.5);
-    g.strokeStyle = 'rgba(255,240,200,0.55)'; g.lineWidth = 0.18; g.beginPath(); g.moveTo(px + (tipX - px) * 0.2, py + (tipY - py) * 0.2); g.lineTo(px + (tipX - px) * 0.75 - ux * 0.12, py + (tipY - py) * 0.75 - uy * 0.12); g.stroke();
-  });
   // casco
   const shell = () => { g.beginPath(); g.moveTo(F[0], F[1]); g.bezierCurveTo(C1[0], C1[1], C2[0], C2[1], B[0], B[1]); g.quadraticCurveTo(hx - rx * 0.85, hy - ry * 0.12, hx - rx * 0.45, hy - ry * 0.38); g.quadraticCurveTo(hx + rx * 0.3, hy - ry * 0.62, F[0], F[1]); g.closePath(); };
   shell();
@@ -122,10 +123,8 @@ function drawHelmet(g, hx, hy, rx, ry, S, P) {
   for (const [vx, vy, rot] of [[0.46, -0.84, 0.55], [-0.04, -0.98, 0.05], [-0.56, -0.8, -0.5]]) { ell(g, hx + rx * vx, hy + ry * vy, 0.85, 0.32, rot); g.fill(); }
   g.strokeStyle = 'rgba(255,255,255,0.16)'; g.lineWidth = 0.14;
   for (const [vx, vy, rot] of [[0.46, -0.84, 0.55], [-0.04, -0.98, 0.05], [-0.56, -0.8, -0.5]]) { ell(g, hx + rx * vx, hy + ry * vy + 0.12, 0.85, 0.32, rot); g.stroke(); }
-  // adesivos: verde-limão com nota, estrela laranja e uma rodinha
-  g.save(); g.translate(hx - rx * 0.66, hy - ry * 0.42); g.rotate(0.38); rr(g, -0.95, -0.62, 1.9, 1.24, 0.22); fillStroke(g, HP.patchANote, 0.22); noteGlyph(g, 0.05, 0, 0.26, '#1c1b23'); g.restore();
-  star(g, hx + rx * 0.6, hy - ry * 0.62, 0.62, '#ff7a1a');
-  ell(g, hx + rx * 0.04, hy - ry * 0.54, 0.55, 0.55); fillStroke(g, '#efe6cc', 0.2); ell(g, hx + rx * 0.04, hy - ry * 0.54, 0.24, 0.24); g.fillStyle = HP.trim; g.fill();
+  // v20: a coroa branca da marca na lateral do capacete
+  crownGlyph(g, hx - rx * 0.12, hy - ry * 0.72, 1.25, '#f4f1ea');
   // brilho do verniz
   g.strokeStyle = 'rgba(255,255,255,0.55)'; g.lineWidth = 0.42; g.beginPath(); g.moveTo(hx - rx * 0.12, hy - ry * 1.16); g.quadraticCurveTo(hx + rx * 0.48, hy - ry * 1.18, hx + rx * 0.82, hy - ry * 0.86); g.stroke();
   g.fillStyle = 'rgba(255,255,255,0.7)'; ell(g, hx + rx * 0.3, hy - ry * 1.08, 0.34, 0.2, -0.2); g.fill();
@@ -137,6 +136,19 @@ function drawHelmet(g, hx, hy, rx, ry, S, P) {
   if (P.buff) {
     g.fillStyle = HP.band; g.beginPath(); g.moveTo(B[0] + 0.2, B[1] - 0.6); g.lineTo(B[0] - 1.6 - S.hairDX * 0.4, B[1] - 0.2 + Math.sin(S.t * 14) * 0.4); g.lineTo(B[0] - 1.3 - S.hairDX * 0.4, B[1] + 0.7); g.closePath(); fillStroke(g, HP.band, 0.35);
   }
+}
+// v20: mochila urbana preta (ficha Inline City) nas costas: corpo arredondado, bolso, alça de mão e a coroinha branca
+function drawBackpack(g, x, y, h, P, S) {
+  const w = 3.6 + (P.buff ? 1.2 : 0), bob = Math.sin(S.t * 9) * 0.12 * Math.min(1, S.speed || 0);
+  g.save(); g.translate(x + 0.6, y + bob);
+  rr(g, -w, 0, w + 0.4, h, 1.3); fillStroke(g, vgrad(g, 0, h, [[0, HP.packTop], [1, HP.pack]]), 0.6);
+  rr(g, -w - 0.5, h * 0.42, w * 0.75, h * 0.48, 0.9); fillStroke(g, HP.pack, 0.45);                 // bolso da frente
+  g.strokeStyle = HP.packHi; g.lineWidth = 0.22; g.beginPath(); g.moveTo(-w - 0.3, h * 0.55); g.lineTo(-w * 0.4, h * 0.55); g.stroke();   // zíper
+  crownGlyph(g, -w * 0.55, h * 0.7, 0.55, '#e8e5de');
+  g.strokeStyle = OUT; g.lineWidth = 0.7; g.beginPath(); g.moveTo(-w * 0.7, 0.2); g.quadraticCurveTo(-w * 0.45, -1.1, -w * 0.15, 0.2); g.stroke();   // alça de mão
+  g.strokeStyle = HP.packTop; g.lineWidth = 0.35; g.stroke();
+  g.fillStyle = HP.packHi; g.fillRect(-w + 0.5, 0.5, 0.35, h - 1.2);
+  g.restore();
 }
 // pose: estado de animação vindo do jogo. S.mode (v7): idle, coast, stride, tuck, air, grab, grind, slide, dead
 function drawHeroRig(g, P, S) {
@@ -185,10 +197,11 @@ function drawHeroRig(g, P, S) {
     const [kx, ky] = ik(hx * 0.8, hipY, ax, ay, legV + 0.6, 1);
     legs[nm] = { hx: hx * 0.8, kx, ky, ax, ay, fx, fy, fr, sk: ft[3] || 1 };
   }
-  const drawLeg = L => {
-    limb(g, [L.hx, hipY, L.kx, L.ky, L.ax, L.ay], P.legW, HP.pants);
-    ell(g, L.kx + P.legW * 0.32, L.ky, P.legW * 0.62, P.legW * 0.56); fillStroke(g, '#1c1b23', 0.4);   // joelheira
-    g.fillStyle = HP.trim; ell(g, L.kx + P.legW * 0.5, L.ky, P.legW * 0.3, P.legW * 0.34); g.fill();
+  const drawLeg = L => {   // v20: calça cargo preta larga, com bolso na coxa e a barra caindo no cano do patins
+    limb(g, [L.hx, hipY, L.kx, L.ky, L.ax, L.ay], P.legW * 1.2, HP.pants);
+    g.strokeStyle = HP.pantsHi; g.lineWidth = 0.32; g.lineCap = 'round'; g.beginPath(); g.moveTo(lerp(L.hx, L.kx, 0.15) + 0.5, lerp(hipY, L.ky, 0.15)); g.lineTo(lerp(L.hx, L.kx, 0.85) + 0.5, lerp(hipY, L.ky, 0.85)); g.stroke();
+    const pa = Math.atan2(L.ky - hipY, L.kx - L.hx), px = lerp(L.hx, L.kx, 0.55), py = lerp(hipY, L.ky, 0.55);
+    g.save(); g.translate(px, py); g.rotate(pa - Math.PI / 2); rr(g, -0.2, -0.9, P.legW * 0.95, 1.8, 0.3); fillStroke(g, HP.pocket, 0.3); g.fillStyle = HP.pantsHi; g.fillRect(-0.2, -0.9, P.legW * 0.95, 0.42); g.restore();
     g.save(); g.translate(L.fx, L.fy); g.rotate(L.fr); if (L.sk !== 1) g.scale(L.sk, 1); drawSkate(g, P.boot * 0.92, S.wheel || 0); g.restore();
   };
   // ----- braços (alvos no referencial do tronco inclinado)
@@ -221,65 +234,45 @@ function drawHeroRig(g, P, S) {
     const [ex, ey] = ik(sxp, syp, hx, hy, P.arm + 0.35, -1);
     arms[nm] = { sx: sxp, sy: syp, ex, ey, hx, hy, gest: gA > 0.5 ? S.gest : null };
   }
-  const drawArm = (A, front) => {
-    const col = P.buff ? SKIN : HP.jack;
-    limb(g, [A.sx, A.sy, A.ex, A.ey, A.hx, A.hy], P.armW, col);
-    if (front && !P.buff) {   // v9: remendo de raio no ombro da manga (estilo)
-      const mx = lerp(A.sx, A.ex, 0.5), my = lerp(A.sy, A.ey, 0.5);
-      g.save(); g.translate(mx, my); g.rotate(Math.atan2(A.ey - A.sy, A.ex - A.sx)); rr(g, -0.95, -0.82, 1.9, 1.64, 0.45); fillStroke(g, '#1c1b23', 0.3);
-      g.fillStyle = '#ff7a1a'; g.beginPath(); g.moveTo(-0.55, -0.45); g.lineTo(0.15, -0.15); g.lineTo(-0.05, 0.05); g.lineTo(0.6, 0.45); g.lineTo(-0.15, 0.12); g.lineTo(0.02, -0.05); g.closePath(); g.fill(); g.restore();
-    }
+  const drawArm = (A, front) => {   // v20: braço de pele, manga curta larga da camiseta e luva sem dedo preta com munhequeira
+    limb(g, [A.sx, A.sy, A.ex, A.ey, A.hx, A.hy], P.armW * (P.buff ? 1 : 0.9), SKIN);
     if (P.buff) { ell(g, (A.sx + A.ex) / 2, (A.sy + A.ey) / 2 - 0.3, P.armW * 0.62, P.armW * 0.5, Math.atan2(A.ey - A.sy, A.ex - A.sx)); fillStroke(g, SKIN, 0.5); g.fillStyle = 'rgba(255,255,255,0.25)'; ell(g, (A.sx + A.ex) / 2 - 0.3, (A.sy + A.ey) / 2 - 0.9, 0.8, 0.4); g.fill(); }
-    else {
-      const ux = A.ex - A.sx, uy = A.ey - A.sy, ul = Math.hypot(ux, uy) || 1;
-      g.strokeStyle = HP.jackL; g.lineWidth = 0.45; g.lineCap = 'round'; g.beginPath(); g.moveTo(A.sx + ux * 0.2 - uy / ul * 0.5, A.sy + uy * 0.2 + ux / ul * 0.5); g.lineTo(A.ex - uy / ul * 0.5, A.ey + ux / ul * 0.5); g.stroke();
-    }
-    // munhequeira de patins (protetor de punho)
-    const fx = A.hx - A.ex, fy = A.hy - A.ey, fl = Math.hypot(fx, fy) || 1, cx_ = lerp(A.ex, A.hx, 0.7), cy_ = lerp(A.ey, A.hy, 0.7);
-    g.save(); g.translate(cx_, cy_); g.rotate(Math.atan2(fy, fx)); rr(g, -0.7, -P.armW * 0.62, 1.4, P.armW * 1.24, 0.35); fillStroke(g, '#1c1b23', 0.35); g.fillStyle = HP.trim; g.fillRect(-0.18, -P.armW * 0.58, 0.36, P.armW * 1.16); g.restore();
+    const sl = P.buff ? 0.4 : 0.62, mx = lerp(A.sx, A.ex, sl), my = lerp(A.sy, A.ey, sl);
+    limb(g, [A.sx, A.sy, mx, my], P.armW * 1.6, front ? HP.tee : HP.teeMid);
+    { const ux = A.ex - A.sx, uy = A.ey - A.sy, ul = Math.hypot(ux, uy) || 1; g.strokeStyle = HP.teeLine; g.lineWidth = 0.28; g.beginPath(); g.moveTo(mx - uy / ul * P.armW * 0.8, my + ux / ul * P.armW * 0.8); g.lineTo(mx + uy / ul * P.armW * 0.8, my - ux / ul * P.armW * 0.8); g.stroke(); }
+    const fx = A.hx - A.ex, fy = A.hy - A.ey, cx_ = lerp(A.ex, A.hx, 0.72), cy_ = lerp(A.ey, A.hy, 0.72);
+    g.save(); g.translate(cx_, cy_); g.rotate(Math.atan2(fy, fx)); rr(g, -0.8, -P.armW * 0.66, 1.6, P.armW * 1.32, 0.4); fillStroke(g, HP.glove, 0.35); g.fillStyle = HP.gloveHi; g.fillRect(-0.15, -P.armW * 0.6, 0.3, P.armW * 1.2); g.restore();
     const hr = 1.12 * (P.buff ? 1.12 : 1);
-    if (A.gest) {   // v9: chifrinho do rock (indicador e mindinho para cima) ou joinha (polegar)
+    if (A.gest) {   // chifrinho do rock (indicador e mindinho) ou joinha (polegar)
       const fs = A.gest === 'rock' ? [[-0.5, -0.24], [0.5, 0.22]] : [[0.1, -0.12]];
-      for (const [fx, rot] of fs) { g.save(); g.translate(A.hx + fx, A.hy - hr * 0.35); g.rotate(rot); rr(g, -0.3, -1.8, 0.6, 2.05, 0.3); fillStroke(g, SKIN, 0.42); g.restore(); }
+      for (const [gx, rot] of fs) { g.save(); g.translate(A.hx + gx, A.hy - hr * 0.35); g.rotate(rot); rr(g, -0.3, -1.8, 0.6, 2.05, 0.3); fillStroke(g, SKIN, 0.42); g.restore(); }
     }
-    ell(g, A.hx, A.hy, hr, hr); fillStroke(g, SKIN, 0.55);
-    g.fillStyle = 'rgba(255,255,255,0.35)'; ell(g, A.hx - hr * 0.3, A.hy - hr * 0.35, hr * 0.35, hr * 0.25); g.fill();
+    ell(g, A.hx, A.hy, hr, hr); fillStroke(g, HP.glove, 0.55);                       // luva (palma)
+    g.fillStyle = SKIN; g.beginPath(); g.arc(A.hx, A.hy, hr * 0.98, -0.6, 0.6); g.closePath(); g.fill();   // pontas dos dedos de fora
+    g.fillStyle = 'rgba(255,255,255,0.22)'; ell(g, A.hx - hr * 0.3, A.hy - hr * 0.35, hr * 0.35, hr * 0.25); g.fill();
   };
-  // ----- violão nas costas
-  if (!S.strum && !S.victory) upper(() => drawGuitar(g, -P.shW * 0.42, shY + P.torso * 0.55, -0.55 - S.lean * 0.6 + S.gsw * 0.05, P.gscale, 0));
+  // ----- v20: mochila urbana preta nas costas (o violão só aparece quando ele toca)
+  upper(() => drawBackpack(g, -P.shW * 0.5, shY + 0.6, P.torso * 0.92, P, S));
   upper(() => drawArm(arms.back));
   if (S.victory) upper(() => { const A = arms.back; for (const dx of [-0.55, 0.6]) { g.lineCap = 'round'; g.strokeStyle = OUT; g.lineWidth = 1.0; g.beginPath(); g.moveTo(A.hx + dx * 0.6, A.hy - 0.5); g.lineTo(A.hx + dx, A.hy - 2.4); g.stroke(); g.strokeStyle = SKIN; g.lineWidth = 0.55; g.stroke(); } });
   drawLeg(legs.back);
   g.save(); g.translate(0, hipY); g.rotate(leanU); g.translate(0, -hipY);
-  // ----- tronco
-  const tw = P.shW, bw = P.belly;
-  g.beginPath();
-  g.moveTo(-tw * 0.5, shY + 1);
-  g.quadraticCurveTo(-bw * 0.64, (shY + hipY) / 2 + 0.6, -bw * 0.44, hipY + 0.2);
-  g.lineTo(bw * 0.44, hipY + 0.2);
-  g.quadraticCurveTo(bw * 0.64, (shY + hipY) / 2 + 0.6, tw * 0.5, shY + 1);
-  g.quadraticCurveTo(0, shY - 1.3, -tw * 0.5, shY + 1); g.closePath();
-  fillStroke(g, vgrad(g, shY, hipY, [[0, P.buff ? HP.jackBuffTop : HP.jackTop], [0.5, HP.jack], [1, HP.jackBot]]), 0.75);
-  g.save(); g.clip();
-  g.fillStyle = vgrad(g, shY, hipY, [[0, HP.shirt], [1, HP.shirtBot]]);
-  g.beginPath(); g.moveTo(-tw * 0.15 - (P.buff ? 1.5 : 0), shY - 1); g.lineTo(tw * 0.15 + (P.buff ? 1.5 : 0), shY - 1); g.lineTo(bw * 0.2 + (P.buff ? 1.2 : 0), hipY + 1); g.lineTo(-bw * 0.2 - (P.buff ? 1.2 : 0), hipY + 1); g.closePath(); g.fill();
-  g.strokeStyle = HP.print; g.lineWidth = 0.5; g.beginPath(); const cy = (shY + hipY) / 2; g.moveTo(0.4, cy - 1.5); g.lineTo(-0.4, cy); g.lineTo(0.5, cy); g.lineTo(-0.3, cy + 1.5); g.stroke();
-  g.strokeStyle = HP.jackL; g.lineWidth = 0.4; g.beginPath(); g.moveTo(-tw * 0.15, shY); g.lineTo(-bw * 0.22, hipY); g.moveTo(tw * 0.15, shY); g.lineTo(bw * 0.22, hipY); g.stroke();
-  g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(-bw, hipY - 1.3, bw * 2, 1.5);
+  // ----- tronco (v20): camiseta branca larga caindo por cima da calça, coroa preta no peito e a alça da mochila
+  const tw = P.shW, bw = P.belly * 1.05;
+  const tee = () => { g.beginPath(); g.moveTo(-tw * 0.52, shY + 0.9);
+    g.quadraticCurveTo(-bw * 0.62, (shY + hipY) / 2 + 0.4, -bw * 0.5, hipY + 0.9);
+    g.quadraticCurveTo(0, hipY + 1.5, bw * 0.5, hipY + 0.9);
+    g.quadraticCurveTo(bw * 0.62, (shY + hipY) / 2 + 0.4, tw * 0.52, shY + 0.9);
+    g.quadraticCurveTo(0, shY - 1.3, -tw * 0.52, shY + 0.9); g.closePath(); };
+  tee(); fillStroke(g, vgrad(g, shY, hipY + 1.4, [[0, HP.tee], [0.6, HP.teeMid], [1, HP.teeBot]]), 0.75);
+  g.save(); tee(); g.clip();
+  g.strokeStyle = HP.teeLine; g.lineWidth = 0.32; g.beginPath(); g.moveTo(-bw * 0.2, hipY - 1.2); g.quadraticCurveTo(-bw * 0.05, hipY - 0.2, -bw * 0.12, hipY + 1); g.moveTo(bw * 0.18, shY + P.torso * 0.5); g.quadraticCurveTo(bw * 0.28, hipY - 0.6, bw * 0.22, hipY + 0.9); g.stroke();   // dobras do tecido
+  crownGlyph(g, tw * 0.12, shY + P.torso * 0.42, P.buff ? 1.4 : 1.1, HP.crown);                                // coroa no peito
   g.restore();
-  g.strokeStyle = HP.trim; g.lineWidth = 0.45; g.beginPath(); g.moveTo(-tw * 0.44, shY + 1.0); g.quadraticCurveTo(-tw * 0.2, shY - 0.4, -tw * 0.12, shY + 0.6); g.moveTo(tw * 0.44, shY + 1.0); g.quadraticCurveTo(tw * 0.2, shY - 0.4, tw * 0.12, shY + 0.6); g.stroke();
-  g.fillStyle = '#121117'; g.fillRect(-bw * 0.46, hipY - 1.0, bw * 0.92, 0.9); g.fillStyle = '#c9ced6'; rr(g, -0.7, hipY - 1.1, 1.4, 1.1, 0.25); g.fill();
-  // v9: corrente da carteira
-  g.strokeStyle = '#d7dbe2'; g.lineWidth = 0.24; g.setLineDash([0.36, 0.24]); g.beginPath(); g.moveTo(bw * 0.3, hipY - 0.55); g.quadraticCurveTo(bw * 0.08, hipY + 1.7, -bw * 0.24, hipY + 0.25); g.stroke(); g.setLineDash([]);
-  // remendos, alfinetes, alça do violão e crachá riscado
-  ell(g, tw * 0.26, shY + P.torso * 0.34, 1.15, 1.15); fillStroke(g, HP.patchA, 0.4); noteGlyph(g, tw * 0.27, shY + P.torso * 0.33, 0.33, HP.patchANote);
-  g.save(); g.translate(-tw * 0.34, shY + P.torso * 0.6); g.rotate(0.22); rr(g, -0.9, -0.7, 1.8, 1.4, 0.25); fillStroke(g, HP.patchB, 0.35); g.restore();
-  g.strokeStyle = '#d7dbe2'; g.lineWidth = 0.22; g.beginPath(); g.moveTo(tw * 0.18, shY + P.torso * 0.66); g.lineTo(tw * 0.36, shY + P.torso * 0.56); g.stroke(); ell(g, tw * 0.37, shY + P.torso * 0.555, 0.25, 0.25); g.stroke();
-  if (!S.strum && !S.victory) { g.strokeStyle = '#121117'; g.lineWidth = 0.9; g.beginPath(); g.moveTo(-tw * 0.42, shY + 0.6); g.lineTo(bw * 0.38, hipY - 1.3); g.stroke(); }
-  const bx = 0.5 + S.badge * 1.4, by = shY + P.torso * 0.62;
-  g.strokeStyle = '#3a6bd8'; g.lineWidth = 0.28; g.beginPath(); g.moveTo(-0.9, shY + 0.3); g.quadraticCurveTo(bx - 0.6, by - 2, bx, by - 1.3); g.moveTo(0.9, shY + 0.3); g.quadraticCurveTo(bx + 0.4, by - 2, bx, by - 1.3); g.stroke();
-  g.save(); g.translate(bx, by); g.rotate(S.badge * 0.4); rr(g, -1.05, -1.3, 2.1, 2.7, 0.3); fillStroke(g, '#f2f2f4', 0.35);
-  g.fillStyle = '#3a6bd8'; g.fillRect(-1.05, -1.3, 2.1, 0.55); g.strokeStyle = '#e3343f'; g.lineWidth = 0.32; g.beginPath(); g.moveTo(-0.8, -0.4); g.lineTo(0.8, 1.1); g.moveTo(0.8, -0.4); g.lineTo(-0.8, 1.1); g.stroke(); g.restore();
+  g.strokeStyle = HP.teeLine; g.lineWidth = 0.3; g.beginPath(); g.moveTo(-tw * 0.18, shY - 0.15); g.quadraticCurveTo(tw * 0.05, shY + 0.75, tw * 0.3, shY - 0.05); g.stroke();   // gola
+  g.lineCap = 'round'; g.strokeStyle = HP.strap; g.lineWidth = 0.95; g.beginPath(); g.moveTo(-tw * 0.06, shY - 0.2); g.quadraticCurveTo(tw * 0.02, shY + P.torso * 0.5, -tw * 0.04, hipY - 0.8); g.stroke();   // alça da mochila
+  g.strokeStyle = 'rgba(255,255,255,0.18)'; g.lineWidth = 0.22; g.stroke();
+  rr(g, -tw * 0.14, shY + P.torso * 0.45, 0.9, 0.7, 0.2); fillStroke(g, '#5d6272', 0.2);   // regulador da alça
   if (P.tall) { // cachecol verde-limão (Varapau)
     g.fillStyle = HP.scarf; rr(g, -tw * 0.42, shY - 0.6, tw * 0.84, 1.6, 0.8); g.fill(); g.strokeStyle = OUT; g.lineWidth = 0.4; g.stroke();
     g.save(); g.translate(-tw * 0.3, shY + 0.4); g.rotate(0.9 + S.scarf); rr(g, -0.6, 0, 1.3, 4.2, 0.6); fillStroke(g, HP.scarf2, 0.4); g.restore();
@@ -291,7 +284,7 @@ function drawHeroRig(g, P, S) {
   g.save(); g.translate(0, hipY); g.rotate(leanU); g.translate(0, -hipY);
   // ----- cabeça
   const hx = 0.35, hy = headY, rx = P.hrx, ry = P.hry;
-  // v8: cabelo castanho escapando por baixo do capacete, na nuca (balança com a mola do cabelo)
+  // v20: cabelo castanho bagunçado escapando por baixo do capacete, na nuca e atrás da orelha (balança com a mola do cabelo)
   g.beginPath();
   g.moveTo(hx - rx * 0.55, hy - ry * 0.05);
   g.bezierCurveTo(hx - rx * 1.25, hy - ry * 0.1, hx - rx * 1.32 + S.hairDX * 0.5, hy + ry * 0.55 + S.hairDY * 0.3, hx - rx * 1.18 + S.hairDX * 0.7, hy + ry * 0.92 + S.hairDY * 0.4);
@@ -304,28 +297,15 @@ function drawHeroRig(g, P, S) {
   fillStroke(g, sk, 0.75);
   const emo = S.dead ? 'dead' : (S.emo || (S.hurt ? 'hurt' : (S.victory || S.strum) ? 'happy' : 'neutral'));   // v9: expressão
   g.fillStyle = `rgba(255,120,120,${emo === 'happy' || emo === 'rock' || emo === 'thrill' ? 0.55 : 0.3})`; ell(g, hx + rx * 0.62, hy + ry * 0.36, 1.1, 0.55); g.fill();
-  // barba do Gabriel Rock: costeleta -> faixa na mandíbula -> queixo cheio com pontinha (bochechas livres, sem bigode)
-  g.beginPath();
-  g.moveTo(hx - rx * 0.4, hy + ry * 0.02);
-  g.quadraticCurveTo(hx - rx * 0.56, hy + ry * 0.42, hx - rx * 0.48, hy + ry * 0.82);
-  g.bezierCurveTo(hx - rx * 0.36, hy + ry * 1.14, hx + rx * 0.02, hy + ry * 1.3, hx + rx * 0.3, hy + ry * 1.36);
-  g.bezierCurveTo(hx + rx * 0.6, hy + ry * 1.26, hx + rx * 0.86, hy + ry * 1.04, hx + rx * 0.9, hy + ry * 0.74);
-  g.quadraticCurveTo(hx + rx * 0.93, hy + ry * 0.62, hx + rx * 0.84, hy + ry * 0.62);
-  g.quadraticCurveTo(hx + rx * 0.74, hy + ry * 0.88, hx + rx * 0.5, hy + ry * 0.9);
-  g.quadraticCurveTo(hx + rx * 0.22, hy + ry * 0.9, hx + rx * 0.06, hy + ry * 0.78);
-  g.quadraticCurveTo(hx - rx * 0.16, hy + ry * 0.6, hx - rx * 0.24, hy + ry * 0.3);
-  g.quadraticCurveTo(hx - rx * 0.28, hy + ry * 0.12, hx - rx * 0.4, hy + ry * 0.02);
-  g.closePath();
-  fillStroke(g, vgrad(g, hy + ry * 0.2, hy + ry * 1.36, [[0, HP.beardTop], [0.5, HP.beard], [1, HP.beardBot]]), 0.55);
-  g.save(); g.clip();
-  g.strokeStyle = HP.beardHi; g.lineWidth = 0.2; g.lineCap = 'round'; g.beginPath();
-  for (const [a, b, c, d] of [[-0.42, 0.3, -0.4, 0.62], [-0.3, 0.8, -0.16, 1.06], [0.06, 0.98, 0.14, 1.24], [0.36, 1.0, 0.4, 1.26], [0.64, 0.94, 0.7, 1.12]]) { g.moveTo(hx + rx * a, hy + ry * b); g.lineTo(hx + rx * c, hy + ry * d); }
-  g.stroke();
-  g.restore();
-  // v8: capacete de skatista (casco preto brilhante cheio de adesivos) com o moicano laranja de espinhos em cima
+  // v20: capacete preto fosco com a coroa; a franja castanha escapa por baixo da aba, na testa
   drawHelmet(g, hx, hy, rx, ry, S, P);
+  g.beginPath(); g.moveTo(hx - rx * 0.35, hy - ry * 0.4);
+  for (const [fx, fy] of [[-0.12, 0.08], [0.06, -0.3], [0.26, 0.02], [0.44, -0.3], [0.62, -0.02], [0.8, -0.32], [0.96, -0.12]]) g.lineTo(hx + rx * fx + S.hairDX * 0.25, hy + ry * fy + Math.max(0, S.hairDY) * 0.15);
+  g.lineTo(hx + rx * 0.98, hy - ry * 0.52); g.quadraticCurveTo(hx + rx * 0.3, hy - ry * 0.74, hx - rx * 0.35, hy - ry * 0.4); g.closePath();
+  fillStroke(g, vgrad(g, hy - ry * 0.7, hy, [[0, HP.hairTop], [1, HP.hair]]), 0.5);
+  g.strokeStyle = HP.hairHi; g.lineWidth = 0.22; g.beginPath(); g.moveTo(hx + rx * 0.1, hy - ry * 0.5); g.lineTo(hx + rx * 0.2, hy - ry * 0.2); g.moveTo(hx + rx * 0.5, hy - ry * 0.52); g.lineTo(hx + rx * 0.56, hy - ry * 0.22); g.stroke();
   // v9: rosto mais expressivo — olhos maiores com íris castanha e brilho, pálpebras que mudam o olhar, sobrancelhas que reagem,
-  // óculos de armação grossa (ainda com a fita na ponte) e boca que vai do sorriso de canto ao grito com língua de fora
+  // e boca que vai do sorriso de canto ao grito com língua de fora (v20: olhos grandes escuros de desenho, sem óculos)
   const ey = hy + 0.32, e1 = hx, e2 = hx + rx * 0.62;
   const joy = emo === 'happy' && S.joy;
   const BROW = { neutral: [0, -0.1, 0.25], cool: [0.12, -0.3, 0.18], happy: [-0.35, -0.45, 0.55], thrill: [-0.75, -0.85, 0.6], focus: [0.6, -0.25, -0.05], rock: [0.45, -0.3, 0.15], hurt: [-0.65, 0.2, 0.05], dead: [0, 0, 0] }[emo] || [0, -0.1, 0.25];
@@ -345,28 +325,17 @@ function drawHeroRig(g, P, S) {
       else { g.moveTo(ex - 0.95 * sc, ey + 0.1); g.quadraticCurveTo(ex, ey + 0.5, ex + 0.95 * sc, ey + 0.1); }
       g.stroke(); return;
     }
-    const rxE = 1.16 * sc, ryE = 1.3 * sc, ix = ex + lookX * sc, iy = ey + 0.12 + lookY;
-    ell(g, ex, ey, rxE, ryE); g.fillStyle = '#fff'; g.fill();
+    const rxE = 1.08 * sc, ryE = 1.6 * sc, ix = ex + lookX * 0.4 * sc, iy = ey + 0.1 + lookY;
+    ell(g, ex, ey, rxE, ryE); g.fillStyle = '#fbf6ef'; g.fill();
     g.save(); ell(g, ex, ey, rxE, ryE); g.clip();
-    ell(g, ix, iy, 0.74 * sc, 0.82 * sc); g.fillStyle = '#7a4a28'; g.fill();
-    ell(g, ix, iy + 0.12, 0.56 * sc, 0.62 * sc); g.fillStyle = '#3d2314'; g.fill();
-    ell(g, ix, iy + 0.06, 0.34 * sc, 0.38 * sc); g.fillStyle = '#120a10'; g.fill();
-    g.fillStyle = '#fff'; ell(g, ix + 0.26 * sc, iy - 0.3 * sc, 0.27 * sc, 0.27 * sc); g.fill(); ell(g, ix - 0.25 * sc, iy + 0.33 * sc, 0.12 * sc, 0.12 * sc); g.fill();
+    ell(g, ix + 0.08, iy, 0.98 * sc, 1.48 * sc); g.fillStyle = vgrad(g, iy - 1.4, iy + 1.4, [[0, '#0f0907'], [1, '#3a2416']]); g.fill();   // olho escuro grande
+    g.fillStyle = '#fff'; ell(g, ix + 0.3 * sc, iy - 0.5 * sc, 0.36 * sc, 0.42 * sc); g.fill(); ell(g, ix - 0.2 * sc, iy + 0.45 * sc, 0.15 * sc, 0.15 * sc); g.fill();
     if (lid > 0) { const ly = ey - ryE + ryE * 2 * lid; g.fillStyle = SKIN_D; g.fillRect(ex - rxE, ey - ryE - 0.1, rxE * 2, ly - (ey - ryE) + 0.1); g.strokeStyle = OUT; g.lineWidth = 0.36; g.beginPath(); g.moveTo(ex - rxE, ly); g.lineTo(ex + rxE, ly); g.stroke(); }
     g.restore();
     g.strokeStyle = OUT; g.lineWidth = 0.3; g.beginPath(); g.ellipse(ex, ey, rxE, ryE, 0, Math.PI * 1.08, Math.PI * 1.92); g.stroke();
   });
-  // óculos de armação grossa em cima (estilo "browline"), lentes maiores, haste até a orelha e a fita na ponte
-  for (const [ex, k] of [[e1, 0], [e2, 1]]) {
-    const sc = k ? 1 : 0.88, lw = 3.25 * sc, lh = 2.85 * sc;
-    rr(g, ex - lw / 2, ey - lh / 2 - 0.05, lw, lh, 0.85 * sc); g.fillStyle = 'rgba(207,230,255,0.18)'; g.fill(); g.strokeStyle = '#141218'; g.lineWidth = 0.4; g.stroke();
-    g.strokeStyle = '#141218'; g.lineWidth = 0.95; g.beginPath(); g.moveTo(ex - lw / 2 + 0.15, ey - lh / 2 + 0.25); g.quadraticCurveTo(ex, ey - lh / 2 - 0.12, ex + lw / 2 - 0.15, ey - lh / 2 + 0.25); g.stroke();
-    g.strokeStyle = 'rgba(255,255,255,0.7)'; g.lineWidth = 0.22; g.beginPath(); g.moveTo(ex - lw * 0.32, ey + lh * 0.26); g.lineTo(ex - lw * 0.06, ey - lh * 0.2); g.stroke();
-  }
-  g.strokeStyle = '#141218'; g.lineWidth = 0.5; g.beginPath(); g.moveTo(e1 - 1.4, ey - 0.7); g.lineTo(hx - rx * 0.8, ey + 0.1); g.stroke();
-  g.save(); g.translate((e1 + e2) / 2 + 0.1, ey - 0.45); g.rotate(0.35); g.fillStyle = '#f4f2ea'; g.fillRect(-0.55, -0.7, 1.1, 1.4); g.strokeStyle = 'rgba(0,0,0,0.35)'; g.lineWidth = 0.12; g.strokeRect(-0.55, -0.7, 1.1, 1.4); g.beginPath(); g.moveTo(-0.55, -0.2); g.lineTo(0.55, -0.2); g.moveTo(-0.55, 0.25); g.lineTo(0.55, 0.25); g.stroke(); g.restore();
-  g.fillStyle = SKIN_D; ell(g, hx + rx * 0.97, hy + 1.1, 0.55, 0.75); g.fill();
-  // boca no meio da barba
+  g.fillStyle = SKIN_D; ell(g, hx + rx * 0.98, hy + 1.0, 0.3, 0.42); g.fill();   // narizinho
+  // boca
   const mx = hx + rx * 0.5, my = hy + ry * 0.68;
   const mm = S.dead ? 'o' : (S.mouth > 0.3 && emo !== 'focus') ? (emo === 'rock' ? 'tongue' : 'open') : ({ happy: 'smile', thrill: 'open', focus: 'grin', rock: 'tongue', hurt: 'o' }[emo] || 'smirk');
   if (mm === 'open' || mm === 'tongue') {   // aberta (cantando, gritando "uhuu") — no rock, com a língua de fora
