@@ -151,7 +151,9 @@ function drawBackpack(g, x, y, h, P, S) {
   g.restore();
 }
 // pose: estado de animação vindo do jogo. S.mode (v7): idle, coast, stride, tuck, air, grab, grind, slide, dead
-function drawHeroRig(g, P, S) {
+// v21: o herói é desenhado com a arte do elenco (09b-heroi-arte.js); este desenho vetorial fica de reserva enquanto as imagens carregam
+function drawHeroRig(g, P, S) { return HA.ready ? drawHeroArt(g, P, S) : drawHeroVector(g, P, S); }
+function drawHeroVector(g, P, S) {
   g.save();
   g.scale(P.scale, P.scale);
   g.scale(1 / Math.sqrt(S.sq), S.sq);

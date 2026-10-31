@@ -11,7 +11,8 @@ Jogo de plataforma de patins (fase 1-1) desenhado em canvas.
   Todos compartilham o escopo global, então a ordem no `index.html` importa.
 - `audio/`: trilhas em camadas (`.mp3`) e efeitos sonoros (`.wav`).
 
-Não há pasta de imagens: toda a arte (herói, inimigos, cenário, blocos) é desenhada por código nos scripts.
+- `img/heroi/`: as peças do personagem principal recortadas da arte do elenco Uhuu Rollers (ficha Inline City),
+  animadas como um esqueleto em `js/09b-heroi-arte.js`. O resto da arte (inimigos, cenário, blocos) é desenhado por código.
 
 ## Rodando localmente
 
