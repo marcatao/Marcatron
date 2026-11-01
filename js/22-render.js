@@ -81,13 +81,13 @@ function drawHeroNow(beat) {
   if (!h.dead && (h.onGround || h.rail)) { ctx.fillStyle = 'rgba(8,4,16,0.42)'; ell(ctx, fx0, fy0 + 0.4, 7.7 * (P.buff ? 1.3 : 1), 1.6); ctx.fill(); }
   if (!h.dead) glow(ctx, fx0, fy0 - 10, 26, '#ffcf7a', 0.14);
   if (man && flipRot && MT.id !== 'star') {   // rastro do mortal: arco claro atrás da cabeça
-    const vh = heroVisH(P), cy = fy0 - vh * 0.48, R = vh * 0.6, dir = h.face * (MT.id === 'back' ? -1 : 1), head = -Math.PI / 2 + h.face * flipRot;
+    const vh = heroDrawH(P), cy = fy0 - vh * 0.48, R = vh * 0.6, dir = h.face * (MT.id === 'back' ? -1 : 1), head = -Math.PI / 2 + h.face * flipRot;
     ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
     for (let i = 0; i < 5; i++) { const a1 = head - dir * i * 0.3, a0 = a1 - dir * 0.3; ctx.strokeStyle = `rgba(191,232,255,${0.42 - i * 0.08})`; ctx.lineWidth = 2.4 - i * 0.4; ctx.beginPath(); ctx.arc(fx0, cy, R, Math.min(a0, a1), Math.max(a0, a1)); ctx.stroke(); }
     ctx.restore();
   }
   if (man && MT.id === 'star') {   // estrela dourada atrás dele: lê na hora como "ESTRELA"
-    const sc = Math.sin(Math.min(1, mp / 0.25) * Math.PI / 2) * (mp > 0.75 ? 1 - (mp - 0.75) / 0.25 : 1), vh = heroVisH(P), R1 = vh * 0.72 * (0.75 + 0.25 * sc), R0 = R1 * 0.45;
+    const sc = Math.sin(Math.min(1, mp / 0.25) * Math.PI / 2) * (mp > 0.75 ? 1 - (mp - 0.75) / 0.25 : 1), vh = heroDrawH(P), R1 = vh * 0.72 * (0.75 + 0.25 * sc), R0 = R1 * 0.45;
     ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.translate(fx0, fy0 - vh * 0.48); ctx.rotate(mp * 1.2); ctx.beginPath();
     for (let i = 0; i < 10; i++) { const r = i % 2 ? R0 : R1, a = -Math.PI / 2 + i * Math.PI / 5; ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r); }
     ctx.closePath(); const gr = ctx.createRadialGradient(0, 0, 0, 0, 0, R1); gr.addColorStop(0, 'rgba(255,236,150,0.55)'); gr.addColorStop(1, 'rgba(255,190,60,0.12)');
@@ -96,15 +96,15 @@ function drawHeroNow(beat) {
   // o rig é desenhado numa camada à parte para ganhar um contorno de luz (silhueta deslocada em 8 direções)
   const k = WT.k, fx = WT.ox + fx0 * k, fy = WT.oy + fy0 * k, ix = Math.floor(fx), iy = Math.floor(fy);
   const wide = Math.abs(h.ang) > 0.25 || mode === 'slide' || mode === 'grab' || h.dead || !!man || h.stunT > 0;   // camada maior quando ele está inclinado (rampa, manobra)
-  const cw = Math.ceil((wide ? 86 : 62) * k), chh = Math.ceil((wide ? 82 : 72) * k), ox0 = Math.round((wide ? 43 : 31) * k), oy0 = Math.round((wide ? 58 : 54) * k);
-  if (!HERO_L.c || HERO_L.c.width < cw || HERO_L.c.height < chh) { const W2 = Math.ceil(86 * k), H2 = Math.ceil(82 * k); HERO_L.c = mk(W2, H2); HERO_L.g = HERO_L.c.getContext('2d'); HERO_L.o = mk(W2, H2); HERO_L.og = HERO_L.o.getContext('2d'); }
+  const cw = Math.ceil((wide ? 124 : 84) * k), chh = Math.ceil((wide ? 124 : 112) * k), ox0 = Math.round((wide ? 62 : 42) * k), oy0 = Math.round((wide ? 88 : 92) * k);   // v22: herói do tamanho do Merlin
+  if (!HERO_L.c || HERO_L.c.width < cw || HERO_L.c.height < chh) { const W2 = Math.ceil(124 * k), H2 = Math.ceil(124 * k); HERO_L.c = mk(W2, H2); HERO_L.g = HERO_L.c.getContext('2d'); HERO_L.o = mk(W2, H2); HERO_L.og = HERO_L.o.getContext('2d'); }
   const g = HERO_L.g, og = HERO_L.og;
   g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, HERO_L.c.width, HERO_L.c.height);
   g.setTransform(k, 0, 0, k, ox0 + (fx - ix), oy0 + (fy - iy));
   if (h.dead) { g.translate(0, -8); g.rotate(h.deadT * 0.13); g.translate(0, 8); }
   else if (Math.abs(h.ang) > 0.001) g.rotate(h.ang);   // de pé na superfície da rampa
   g.scale(h.face * spinX, 1);
-  if (flipRot) { const cy = -heroVisH(P) * 0.48; g.translate(0, cy); g.rotate(flipRot); g.translate(0, -cy); }
+  if (flipRot) { const cy = -heroDrawH(P) * 0.48; g.translate(0, cy); g.rotate(flipRot); g.translate(0, -cy); }
   GLOW_DEFER = [];
   drawHeroRig(g, P, S);
   const glows = GLOW_DEFER; GLOW_DEFER = null;

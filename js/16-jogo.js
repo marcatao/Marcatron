@@ -233,7 +233,7 @@ function updateHero() {
   h.scarf = lerp(h.scarf, clamp(Math.abs(h.vx) * 0.25 + Math.sin(G.t * 9) * 0.08, 0, 0.9), 0.15);
   if (--h.blinkT <= 0) { h.blink = 7; h.blinkT = 140 + Math.random() * 160; } if (h.blink > 0) h.blink--;
   if (h.tfT < 1) h.tfT = Math.min(1, h.tfT + 1 / 24);
-  { const vis = heroVisH(FORMP[h.form]); h.duck = lerp(h.duck, clamp((ceilRoom(h, vis + 2) - 0.4) / vis, 0.62, 1), 0.3); }   // agacha sob teto baixo
+  { const vis = heroDrawH(FORMP[h.form]); h.duck = lerp(h.duck, clamp((ceilRoom(h, vis + 2) - 0.4) / vis, 0.36, 1), 0.3); }   // agacha sob teto baixo
   h.mouth = lerp(h.mouth, (!h.onGround && h.vy < -1) || h.strum > 0 || h.slideT > 8 ? 1 : 0, 0.25);
   if (h.dead) { h.ramp = h.rail = h.loop = null; skateAudio(h, false); h.deadT++; if (h.deadT === 24) h.vy = -5; if (h.deadT > 24) { h.vy += 0.3; h.y += h.vy; } if (h.deadT > 110) respawn(); return; }
   const F = FORMS[h.form], playing = G.state === 'play', auto = playing && G.cutscene;   // cutscene: o portão abriu, ele vai sozinho até o palco

@@ -14,6 +14,9 @@ const HA = {
     thigh: { x: 102, y: 428, w: 130, h: 163 }, shin: { x: 110, y: 486, w: 112, h: 159 }, skate: { x: 92, y: 612, w: 177, h: 151 } },
   piv: { torso: [168, 446], head: [176, 262], uarm: [154, 290], farm: [158, 392], thigh: [168, 452], shin: [165, 535], skate: [165, 628] },
   ground: 761, top: 33,
+  // v22: as 6 expressões da ficha (rostos de 3/4, já olhando para +x), trocadas conforme a situação; [largura, altura]
+  faces: {'sorriso': [229, 210], 'risada': [223, 214], 'piscada': [233, 212], 'susto': [218, 214], 'foco': [231, 214], 'preocupado': [218, 208]},
+  face: {}, lastFace: null, faceT: -99,
 };
 const HA_BONES = [   // [osso, pai, peça]
   ['torso', null, 'torso'], ['head', 'torso', 'head'],
@@ -24,6 +27,10 @@ const HA_BONES = [   // [osso, pai, peça]
 const HA_ORDER = ['uarmB', 'farmB', 'thighB', 'shinB', 'skateB', 'shinF', 'skateF', 'thighF', 'torso', 'head', 'uarmF', 'farmF'];
 const HA_DARK = { uarmB: 1, farmB: 1, thighB: 1, shinB: 1, skateB: 1 };
 (function loadHeroArt() {
+  for (const nm of Object.keys(HA.faces)) {   // rostos: carregam à parte (até chegarem, fica a cabeça de perfil)
+    const im = new Image(); im.onload = () => { HA.face[nm] = im; };
+    im.src = (window.__IMG && window.__IMG['heroi/rosto-' + nm + '.webp']) || 'img/heroi/rosto-' + nm + '.webp';
+  }
   const names = Object.keys(HA.parts); let n = 0;
   for (const nm of names) {
     const im = new Image();
@@ -127,7 +134,16 @@ function heroArtPose(S) {
 
 // ----- desenho: g com a origem no chão, debaixo do herói (unidades do jogo); P = formParams (forma), S = pose
 function drawHeroArt(g, P, S) {
-  const Q = heroArtPose(S), piv = HA.piv, W = {}, pv = b => piv[b.replace(/[FB]$/, '')];
+  // v22: debaixo de teto baixo (S.sq pequeno por causa do agachamento), ele se agacha de verdade e só o resto vira achatamento
+  const sq0 = S.sq || 1, crouch = clamp((0.9 - sq0) / 0.45, 0, 1);
+  const Q = heroArtPose(S);
+  if (crouch > 0) {
+    const D = { thighF: -78, shinF: 128, thighB: -46, shinB: 120, uarmF: -40, farmF: -70, uarmB: 10, farmB: -60, torso: 46, head: -34 };
+    for (const k in D) Q[k].r = lerp(Q[k].r, D[k], crouch);
+    Q.skateF.level = lerp(Q.skateF.level || 0, 0, crouch); Q.skateB.level = lerp(Q.skateB.level || 0, 0, crouch);
+  }
+  const sqEff = clamp(sq0 / lerp(1, 0.62, crouch), 0.62, 1.3);
+  const piv = HA.piv, W = {}, pv = b => piv[b.replace(/[FB]$/, '')];
   // formas: Varapau = pernas e tronco compridos; Marombado = tronco e braços largos
   if (P.tall) { for (const b of ['thighF', 'thighB', 'shinF', 'shinB']) Q[b].sy = 1.55; Q.torso.sy *= 1.12; for (const b of ['uarmF', 'uarmB', 'farmF', 'farmB']) Q[b].sy = 1.3; }
   if (P.buff) { Q.torso.sx = 1.32; for (const b of ['uarmF', 'uarmB', 'farmF', 'farmB']) Q[b].sx = 1.45; for (const b of ['thighF', 'thighB']) Q[b].sx = 1.18; }
@@ -146,14 +162,20 @@ function drawHeroArt(g, P, S) {
   const low = Math.max(...wheels('skateF'), ...wheels('skateB'));
   solve(piv.torso[1] + (HA.ground - low));   // as rodas mais baixas encostam no chão
   // escala: a altura de pé da arte vira a altura visual do herói nesta forma (mesma proporção de antes)
-  const artH = (HA.ground - HA.top) * (P.tall ? 1.3 : P.buff ? 1.06 : 1), s = heroVisH(P) / artH;
+  const artH = (HA.ground - HA.top) * (P.tall ? 1.3 : P.buff ? 1.06 : 1), s = heroDrawH(P) / artH;
   g.save();
-  g.scale(1 / Math.sqrt(S.sq || 1), S.sq || 1); g.rotate(S.lean || 0);
+  g.scale(1 / Math.sqrt(sqEff), sqEff); g.rotate(S.lean || 0);
   g.scale(s, s); g.translate(-piv.torso[0], -HA.ground);
   const base = g.getTransform();
+  const face = heroFace(S), fimg = face && HA.face[face];
+  if (face !== HA.lastFace) { HA.lastFace = face; HA.faceT = G.frame; }
   for (const b of HA_ORDER) {
     const part = HA_BONES.find(x => x[0] === b)[2], p = HA.parts[part];
-    g.setTransform(base.multiply(W[b].full)); g.drawImage(HA_DARK[b] ? HA.dark[part] : HA.img[part], p.x, p.y, p.w, p.h);
+    g.setTransform(base.multiply(W[b].full));
+    if (b === 'head' && fimg) {   // rosto com expressão: o queixo encaixa no pescoço, com um pulinho quando troca
+      const [fw, fh] = HA.faces[face], pop = 1 + 0.12 * Math.max(0, 1 - (G.frame - HA.faceT) / 8), [nx, ny] = piv.head;
+      g.translate(nx, ny); g.scale(pop, pop); g.drawImage(fimg, -fw * 0.5 + 10, -fh * 0.97, fw, fh);
+    } else g.drawImage(HA_DARK[b] ? HA.dark[part] : HA.img[part], p.x, p.y, p.w, p.h);
   }
   g.setTransform(base);
   // violão na frente quando ele toca (air guitar, comemoração no palco)
@@ -165,3 +187,19 @@ function drawHeroArt(g, P, S) {
   g.restore();
 }
 const D2R_H = Math.PI / 180;
+// v22: qual expressão da ficha usar (null = cabeça de perfil, o rosto neutro); S.emo vem do jogo (ver drawHeroNow)
+function heroFace(S) {
+  if (S.dead) return 'preocupado';
+  if (S.hurt || S.emo === 'hurt') return 'susto';
+  if (S.wink) return 'piscada';
+  if (S.victory || S.emo === 'thrill' || S.emo === 'rock' || (S.emo === 'happy' && S.joy)) return 'risada';
+  if (S.emo === 'happy') return 'sorriso';
+  if (S.emo === 'focus' || S.emo === 'cool') return 'foco';
+  return null;
+}
+// v22: o herói tem a altura do Merlin (as formas maiores crescem menos, para caber na fase)
+function heroDrawH(P) {
+  if (!HA.ready) return heroVisH(P);
+  const r = heroVisH(P) / heroVisH(FORMP[0]);
+  return MERLIN_H * (1 + (r - 1) * 0.45);
+}
