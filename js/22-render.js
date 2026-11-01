@@ -94,13 +94,15 @@ function drawHeroNow(beat) {
     ctx.globalAlpha = 0.1 + 0.9 * sc; ctx.fillStyle = gr; ctx.fill(); ctx.strokeStyle = 'rgba(255,225,120,0.7)'; ctx.lineWidth = 0.5; ctx.stroke(); ctx.restore();
   }
   // o rig é desenhado numa camada à parte para ganhar um contorno de luz (silhueta deslocada em 8 direções)
-  const k = WT.k, fx = WT.ox + fx0 * k, fy = WT.oy + fy0 * k, ix = Math.floor(fx), iy = Math.floor(fy);
+  // v22: a camada é desenhada numa resolução menor (kl px por unidade) e ampliada na tela (z = k/kl): com o herói do
+  // tamanho do Merlin, a camada em resolução cheia passava de 1 milhão de pixels e o quadro ficava muito mais lento
+  const k = WT.k, kl = Math.min(k, 5.2), z = k / kl, fx = WT.ox + fx0 * k, fy = WT.oy + fy0 * k, ix = Math.floor(fx), iy = Math.floor(fy);
   const wide = Math.abs(h.ang) > 0.25 || mode === 'slide' || mode === 'grab' || h.dead || !!man || h.stunT > 0;   // camada maior quando ele está inclinado (rampa, manobra)
-  const cw = Math.ceil((wide ? 124 : 84) * k), chh = Math.ceil((wide ? 124 : 112) * k), ox0 = Math.round((wide ? 62 : 42) * k), oy0 = Math.round((wide ? 88 : 92) * k);   // v22: herói do tamanho do Merlin
-  if (!HERO_L.c || HERO_L.c.width < cw || HERO_L.c.height < chh) { const W2 = Math.ceil(124 * k), H2 = Math.ceil(124 * k); HERO_L.c = mk(W2, H2); HERO_L.g = HERO_L.c.getContext('2d'); HERO_L.o = mk(W2, H2); HERO_L.og = HERO_L.o.getContext('2d'); }
+  const cw = Math.ceil((wide ? 120 : 80) * kl), chh = Math.ceil((wide ? 120 : 106) * kl), ox0 = Math.round((wide ? 60 : 40) * kl), oy0 = Math.round((wide ? 86 : 90) * kl);
+  if (!HERO_L.c || HERO_L.c.width < cw || HERO_L.c.height < chh) { const W2 = Math.ceil(120 * kl), H2 = Math.ceil(120 * kl); HERO_L.c = mk(W2, H2); HERO_L.g = HERO_L.c.getContext('2d'); HERO_L.o = mk(W2, H2); HERO_L.og = HERO_L.o.getContext('2d'); }
   const g = HERO_L.g, og = HERO_L.og;
-  g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, HERO_L.c.width, HERO_L.c.height);
-  g.setTransform(k, 0, 0, k, ox0 + (fx - ix), oy0 + (fy - iy));
+  g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, cw + 2, chh + 2);
+  g.setTransform(kl, 0, 0, kl, ox0 + (fx - ix) / z, oy0 + (fy - iy) / z);
   if (h.dead) { g.translate(0, -8); g.rotate(h.deadT * 0.13); g.translate(0, 8); }
   else if (Math.abs(h.ang) > 0.001) g.rotate(h.ang);   // de pé na superfície da rampa
   g.scale(h.face * spinX, 1);
@@ -109,16 +111,17 @@ function drawHeroNow(beat) {
   drawHeroRig(g, P, S);
   const glows = GLOW_DEFER; GLOW_DEFER = null;
   if ((h.rail || h.loop) && !h.dead) glow(ctx, fx0 - h.face * 2, fy0, 10 + Math.sin(G.t * 40) * 2, '#ffb347', 0.6);   // v11: brasa no ponto de contato do grind
-  const r = Math.max(1.4, 0.34 * k);
-  og.setTransform(1, 0, 0, 1, 0, 0); og.globalCompositeOperation = 'source-over'; og.clearRect(0, 0, HERO_L.o.width, HERO_L.o.height);
+  const r = Math.max(1.4, 0.34 * kl);
+  og.setTransform(1, 0, 0, 1, 0, 0); og.globalCompositeOperation = 'source-over'; og.clearRect(0, 0, cw + 4, chh + 4);
   for (const [dx, dy] of RIM_DIRS) og.drawImage(HERO_L.c, 0, 0, cw, chh, dx * r, dy * r, cw, chh);
   og.globalCompositeOperation = 'source-in'; og.fillStyle = HERO_RIM; og.fillRect(0, 0, cw, chh);
   og.globalCompositeOperation = 'source-over';
   ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.drawImage(HERO_L.o, 0, 0, cw, chh, ix - ox0, iy - oy0, cw, chh);
-  if (SPD > 0.25 && !h.dead) { const d = -(Math.sign(h.vx) || h.face) * K * 2.4 * SPD; for (let k = 3; k >= 1; k--) { ctx.globalAlpha = 0.26 * SPD * (1 - k / 4); ctx.drawImage(HERO_L.c, 0, 0, cw, chh, ix - ox0 + d * k, iy - oy0, cw, chh); } ctx.globalAlpha = 1; }   // v13: rastro de velocidade
-  ctx.drawImage(HERO_L.c, 0, 0, cw, chh, ix - ox0, iy - oy0, cw, chh);
-  for (const [gx, gy, gr, ga] of glows) glow(ctx, gx + ix - ox0, gy + iy - oy0, gr, '#b6ff3b', ga);
+  const dx0 = ix - ox0 * z, dy0 = iy - oy0 * z, dw = cw * z, dh = chh * z;
+  ctx.drawImage(HERO_L.o, 0, 0, cw, chh, dx0, dy0, dw, dh);
+  if (SPD > 0.25 && !h.dead) { const d = -(Math.sign(h.vx) || h.face) * K * 2.4 * SPD; for (let q = 3; q >= 1; q--) { ctx.globalAlpha = 0.26 * SPD * (1 - q / 4); ctx.drawImage(HERO_L.c, 0, 0, cw, chh, dx0 + d * q, dy0, dw, dh); } ctx.globalAlpha = 1; }   // v13: rastro de velocidade
+  ctx.drawImage(HERO_L.c, 0, 0, cw, chh, dx0, dy0, dw, dh);
+  for (const [gx, gy, gr, ga] of glows) glow(ctx, dx0 + gx * z, dy0 + gy * z, gr * z, '#b6ff3b', ga);
   ctx.restore();
   if (h.tfT < 1) glow(ctx, h.x + h.w / 2, h.y + h.h / 2, 26 * (1 - h.tfT), h.form === 1 ? '#b6ff3b' : h.form === 2 ? '#ff7a1a' : '#ffffff', 0.8);
 }
