@@ -263,10 +263,17 @@ function drawHUD() {
   if (etCount() > 0) uiText('ETs ' + etCount() + '/3', pad + fw + 10 * u, pad + 73 * u, 15 * u, '#7fd4ff');
   uiText('PONTOS ' + String(stats.score).padStart(5, '0'), pad, pad + 100 * u, 18 * u, '#ffd23f');   // v8.1: manobras no ar
   if (hero.manDone.length) { const n = hero.manDone.length; uiText('NO AR: ' + hero.manPts + (n > 1 ? ' x' + n + ' = ' + hero.manPts * n : '') + ' · POUSE!', pad, pad + 122 * u, 15 * u, '#7fd4ff'); }
-  uiText(fmt(G.timer.t), W - pad, pad + 16 * u, 34 * u, G.timer.on ? '#ffffff' : '#cfc8de', 'right');
-  uiText('REC ' + fmt(G.best), W - pad, pad + 44 * u, 16 * u, '#ffd23f', 'right', 600);
+  if (tut && tut.active && G.state === 'play') {   // v23: no treino, um selo de TUTORIAL no lugar do cronômetro
+    ctx.font = `800 ${22 * u}px ${FONT_UI}`; const tw = ctx.measureText('TUTORIAL').width + 34 * u;
+    rr(ctx, W - pad - tw, pad, tw, 34 * u, 10 * u); ctx.fillStyle = '#7fd4ff'; ctx.fill(); ctx.strokeStyle = '#140f1f'; ctx.lineWidth = 2 * u; ctx.stroke();
+    uiText('TUTORIAL', W - pad - tw / 2, pad + 17 * u, 22 * u, '#140f1f', 'center', 800, FONT_UI, false);
+    uiText('O TEMPO AINDA NÃO CONTA', W - pad, pad + 48 * u, 13 * u, '#7fd4ff', 'right', 800);
+  } else {
+    uiText(fmt(G.timer.t), W - pad, pad + 16 * u, 34 * u, G.timer.on ? '#ffffff' : '#cfc8de', 'right');
+    uiText('REC ' + fmt(G.best), W - pad, pad + 44 * u, 16 * u, '#ffd23f', 'right', 600);
+  }
   drawVU(W - pad - 46 * u, pad + 96 * u, 34 * u, AU.danger);
-  drawBossHUD(u, pad); drawBossCard(u); drawTutorialHUD(u); drawSpeedo(u); drawTalkBox(u);
+  drawBossHUD(u, pad); drawBossCard(u); drawTutorialMood(u); drawTutorialHUD(u); drawSpeedo(u); drawTalkBox(u);
   if (G.state === 'play' && !G.timer.on && !G.timeFrozen && !hero.dead && !(tut && (tut.active || (tut.doneT != null && tut.doneT < 150))) && (G.frame >> 5) % 2 === 0) uiText('O TEMPO COMEÇA QUANDO VOCÊ SE MEXER', W / 2, H * 0.2, 20 * u, '#ffffff', 'center');
   if (G.state === 'play' && G.hintT < 600 && !(tut && tut.active) && !talk) {
     ctx.globalAlpha = clamp((600 - G.hintT) / 90, 0, 1) * 0.92;

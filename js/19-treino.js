@@ -65,6 +65,7 @@ function tutGoal(step) {
 const tutStation = step => (step <= TUT_N ? TUT[TUT_ST[step]] : tut.first ? TUT.sEnd : TUT.s1) * TS;
 function tutStepDone() {
   const m = tut.m;
+  tut.stamp = { n: tut.step, name: TUT_STEPS[tut.step - 1], t: 0 };   // v23: carimbo de lição concluída
   tut.step++; tut.stepT = 0; tut.bump = null; tut.tricks0 = stats.tricks; tut.waitT = 0; tut.visitX = null; tut.repeatN = 0;
   m.cheerT = 54; m.next = tutStation(tut.step);
   sfx('combo', { vol: 0.7 }); noteBurst(m.x, m.y - MERLIN_H, 10, 1.6);
@@ -194,6 +195,7 @@ function updateTutorial() {
   const m = tut.m, h = hero, hx = heroCX(), playing = G.state === 'play';
   tut.t++; tut.stepT++; m.t += 1 / 60;
   if (tut.bump) { tut.bump.t++; if (tut.bump.t > 150) tut.bump = null; }
+  if (tut.stamp && ++tut.stamp.t > 95) tut.stamp = null;
   // v14: demorou para fazer a lição? o Merlin vem até o jogador e repete a instrução
   if (tut.active && playing && !talk && !tut.pending && !h.dead && tut.step <= TUT_N && m.cheerT === 0 && m.next == null) {
     if (++tut.waitT > TUT_WAIT) {
@@ -325,6 +327,17 @@ function drawTutorialBubble(g) {
   glow(g, w.x, y - 2, 9, '#b6ff3b', 0.5);
 }
 // caixa de fala na tela: embaixo, por cima de tudo, com o retrato e o nome do Merlin; escreve letra por letra
+// v23: quebra as falas em linhas que cabem na largura (mantém os trechos [destacados] inteiros)
+function talkWrap(lines, maxW, fs) {
+  ctx.font = `800 ${fs}px ${FONT_UI}`;
+  const width = s => ctx.measureText(s.replace(/[\[\]]/g, '')).width, out = [];
+  for (const l of lines) {
+    let cur = '';
+    for (const w of l.split(' ')) { const nx = cur ? cur + ' ' + w : w; if (cur && width(nx) > maxW) { out.push(cur); cur = w; } else cur = nx; }
+    if (cur) out.push(cur);
+  }
+  return out;
+}
 function talkText(lines, x, y, lh, fs, reveal) {
   let left = Math.floor(reveal);
   ctx.font = `800 ${fs}px ${FONT_UI}`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
@@ -343,8 +356,11 @@ function talkText(lines, x, y, lh, fs, reveal) {
 function drawTalkBox(u) {
   if (!talk || (G.state !== 'play' && G.state !== 'paused')) return;
   const page = talk.page, done = talk.n >= talkLen(page), sc = H / cssH;
-  const side = touchUI ? 200 * sc : 24 * u, bw = Math.min(W - side * 2, 940 * u), fs = Math.max(15 * sc, 25 * u), lh = fs * 1.32;
-  const pr = 50 * u, bh = Math.max(pr * 2 + 26 * u, page.lines.length * lh + 64 * u), bx = (W - bw) / 2, by = H - bh - (touchUI ? 12 * sc : 18 * u);
+  const side = touchUI ? 200 * sc : 24 * u, bw = Math.min(W - side * 2, 940 * u), pr = 50 * u, textW = bw - (2 * pr + 44 * u) - 22 * u;
+  // a fala sempre cabe na caixa: quebra em linhas e, se passar de 4 linhas, diminui a letra
+  let fs = Math.max(15 * sc, 25 * u), lines = talkWrap(page.lines, textW, fs);
+  while (lines.length > 4 && fs > 12 * sc) { fs *= 0.92; lines = talkWrap(page.lines, textW, fs); }
+  const lh = fs * 1.3, bh = Math.max(pr * 2 + 26 * u, lines.length * lh + 66 * u), bx = (W - bw) / 2, by = H - bh - (touchUI ? 12 * sc : 18 * u);
   ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = 'rgba(0,0,0,0.35)'; rr(ctx, bx + 4 * u, by + 6 * u, bw, bh, 18 * u); ctx.fill();
   rr(ctx, bx, by, bw, bh, 18 * u); ctx.fillStyle = 'rgba(16,11,30,0.96)'; ctx.fill(); ctx.strokeStyle = '#b6ff3b'; ctx.lineWidth = 3 * u; ctx.stroke();
@@ -356,17 +372,56 @@ function drawTalkBox(u) {
   ctx.restore();
   ell(ctx, pcx, pcy, pr, pr); ctx.strokeStyle = '#7fd4ff'; ctx.lineWidth = 2.5 * u; ctx.stroke();
   // aba com o nome de quem fala
-  const tag = 'MERLIN · PROFESSOR DE PATINS'; ctx.font = `800 ${15 * u}px ${FONT_UI}`; const tw = ctx.measureText(tag).width + 26 * u;
+  const tag = tut && tut.active ? 'MERLIN · TUTORIAL' : 'MERLIN · PROFESSOR DE PATINS'; ctx.font = `800 ${15 * u}px ${FONT_UI}`; const tw = ctx.measureText(tag).width + 26 * u;
   rr(ctx, bx + 2 * pr + 40 * u, by - 15 * u, tw, 30 * u, 10 * u); ctx.fillStyle = '#7fd4ff'; ctx.fill(); ctx.strokeStyle = OUT; ctx.lineWidth = 2 * u; ctx.stroke();
   uiText(tag, bx + 2 * pr + 40 * u + tw / 2, by, 15 * u, '#140f1f', 'center', 800, FONT_UI, false);
   // texto e rodapé
   const tx = bx + 2 * pr + 44 * u, ty = by + 30 * u + fs * 0.5;
-  talkText(page.lines, tx, ty, lh, fs, talk.n);
+  talkText(lines, tx, ty, lh, fs, talk.n);
   const fy = by + bh - 18 * u;
   if (talk.pages.length > 1) uiText((talk.i + 1) + '/' + talk.pages.length, tx, fy, 14 * u, '#8a83a0', 'left', 800, FONT_UI, false);
   if (page.ask === 'who') { if (done) uiText(touchUI ? 'TOQUE EM UMA DAS OPÇÕES ACIMA' : 'ESPAÇO: SOU EU  ·  N: TROCAR NOME', bx + bw - 20 * u, fy, 15 * u, '#ffd23f', 'right', 800, FONT_UI, false); }
   else if (page.ask) { if (done) uiText('ESCREVA SEU NOME NA CAIXA ACIMA E CONFIRME', bx + bw - 20 * u, fy, 15 * u, '#ffd23f', 'right', 800, FONT_UI, false); }
   else if (done && (G.frame >> 4) % 4 !== 3) uiText(touchUI ? 'TOQUE PRA CONTINUAR ▶' : 'ESPAÇO PRA CONTINUAR ▶', bx + bw - 20 * u, fy, 16 * u, '#ff9a3c', 'right', 800, FONT_UI, false);
+  ctx.restore();
+}
+// v23: clima de treino — moldura pulsante na tela inteira com "MODO TREINO" nos cantos, cartaz de abertura e o carimbo de cada lição
+function drawTutorialMood(u) {
+  if (!tut || !tut.active || G.state !== 'play') return;
+  const pulse = 0.55 + 0.45 * Math.sin(G.t * 3), m = 7 * u, sc = H / cssH;
+  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
+  // moldura ciano tracejada, com cantos em L
+  ctx.strokeStyle = `rgba(127,212,255,${0.35 + 0.25 * pulse})`; ctx.lineWidth = 3 * u; ctx.setLineDash([18 * u, 10 * u]); ctx.lineDashOffset = -G.t * 40 * u;
+  rr(ctx, m, m, W - 2 * m, H - 2 * m, 14 * u); ctx.stroke(); ctx.setLineDash([]);
+  ctx.strokeStyle = '#7fd4ff'; ctx.lineWidth = 5 * u; ctx.lineCap = 'round';
+  for (const [cx, cy, dx, dy] of [[m, m, 1, 1], [W - m, m, -1, 1], [m, H - m, 1, -1], [W - m, H - m, -1, -1]]) { ctx.beginPath(); ctx.moveTo(cx + dx * 40 * u, cy); ctx.lineTo(cx, cy); ctx.lineTo(cx, cy + dy * 40 * u); ctx.stroke(); }
+  // faixa listrada "MODO TREINO" na lateral esquerda, no meio da tela
+  const bw = 30 * u, bh = 190 * u, bx = m + 4 * u, by = H * 0.5 - bh / 2;
+  ctx.save(); rr(ctx, bx, by, bw, bh, 8 * u); ctx.clip();
+  ctx.fillStyle = '#ffd23f'; ctx.fillRect(bx, by, bw, bh); ctx.fillStyle = '#16151b';
+  for (let k = -bh; k < bh * 2; k += 26 * u) { ctx.beginPath(); ctx.moveTo(bx, by + k + (G.t * 30 * u) % (26 * u)); ctx.lineTo(bx + bw, by + k - 14 * u + (G.t * 30 * u) % (26 * u)); ctx.lineTo(bx + bw, by + k - 2 * u + (G.t * 30 * u) % (26 * u)); ctx.lineTo(bx, by + k + 12 * u + (G.t * 30 * u) % (26 * u)); ctx.closePath(); ctx.fill(); }
+  ctx.restore();
+  ctx.save(); ctx.translate(bx + bw / 2, by + bh / 2); ctx.rotate(-Math.PI / 2);
+  rr(ctx, -70 * u, -11 * u, 140 * u, 22 * u, 6 * u); ctx.fillStyle = '#16151b'; ctx.fill();
+  uiText('MODO TREINO', 0, 0, 15 * u, '#ffd23f', 'center', 800, FONT_UI, false); ctx.restore();
+  // cartaz de abertura (primeiros segundos)
+  if (tut.t < 200) {
+    const a = Math.min(1, tut.t / 12, (200 - tut.t) / 30), y = H * 0.36, s = 1 + 0.08 * Math.max(0, 1 - tut.t / 14);
+    ctx.globalAlpha = a; ctx.save(); ctx.translate(W / 2, y); ctx.scale(s, s);
+    rr(ctx, -250 * u, -58 * u, 500 * u, 116 * u, 18 * u); ctx.fillStyle = 'rgba(14,10,24,0.88)'; ctx.fill(); ctx.strokeStyle = '#7fd4ff'; ctx.lineWidth = 3 * u; ctx.stroke();
+    ctx.shadowColor = '#7fd4ff'; ctx.shadowBlur = 18 * u; uiText('TUTORIAL', 0, -14 * u, 58 * u, '#c9f0ff', 'center', 400, FONT_HAND, false); ctx.shadowBlur = 0;
+    uiText('TREINO COM O MERLIN · 7 LIÇÕES · O TEMPO NÃO CONTA', 0, 34 * u, 17 * u, '#ffd23f', 'center', 800, FONT_UI, false);
+    ctx.restore(); ctx.globalAlpha = 1;
+  }
+  // carimbo "LIÇÃO X CONCLUÍDA!"
+  if (tut.stamp) {
+    const t = tut.stamp.t, a = Math.min(1, t / 6, (95 - t) / 18), s = t < 10 ? 1.6 - 0.6 * (t / 10) : 1;
+    ctx.globalAlpha = a; ctx.save(); ctx.translate(W / 2, H * 0.42); ctx.rotate(-0.08); ctx.scale(s, s);
+    rr(ctx, -210 * u, -44 * u, 420 * u, 88 * u, 14 * u); ctx.fillStyle = 'rgba(20,40,10,0.9)'; ctx.fill(); ctx.strokeStyle = '#b6ff3b'; ctx.lineWidth = 5 * u; ctx.stroke();
+    uiText('✓ LIÇÃO ' + tut.stamp.n + ' CONCLUÍDA!', 0, -8 * u, 36 * u, '#c8ff5a', 'center', 400, FONT_HAND, false);
+    uiText(tut.stamp.name + (tut.stamp.n < TUT_N ? ' · PRÓXIMA: ' + TUT_STEPS[tut.stamp.n] : ' · FALE COM O MERLIN'), 0, 26 * u, 15 * u, '#ffffff', 'center', 800, FONT_UI, false);
+    ctx.restore(); ctx.globalAlpha = 1;
+  }
   ctx.restore();
 }
 // ----- HUD do tutorial: deixa claro que é um treino, qual é a lição e o que fazer; as dicas do Merlin aparecem logo abaixo
