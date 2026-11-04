@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block titulo %}Início{% endblock %}
+{% block conteudo %}
+<section class="cartao">
+  <h1>Portal OEE</h1>
+  <p>Eficiência Global dos Equipamentos: <strong>Disponibilidade × Performance × Qualidade</strong>.</p>
+  {% if usuario %}
+    <p>Olá, {{ usuario.nome }}! <a href="{{ url_for('portal.calculadora') }}">Abrir a calculadora de OEE</a>.</p>
+  {% else %}
+    <p>Entre com sua conta corporativa (Microsoft Entra ID) para acessar.</p>
+    <a class="botao" href="{{ url_for('auth.login') }}">Entrar com Microsoft</a>
+  {% endif %}
+</section>
+{% endblock %}

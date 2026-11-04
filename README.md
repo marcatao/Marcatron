@@ -28,3 +28,7 @@ python3 -m http.server 8000
 O melhor tempo de cada nome fica no banco de dados do artefato publicado no claude.ai (coleção `ranking`, um documento
 por nome). Esse banco não é apagado quando o jogo é atualizado. Aberto fora do claude.ai, o jogo guarda o ranking no
 próprio navegador.
+
+## Outros projetos
+
+- [`OEE/`](OEE/README.md): portal web em Python (Flask) de OEE com login pelo Microsoft Entra ID.
